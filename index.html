@@ -1,54 +1,40 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ColorAid – Subir Imagen + Filtro Real</title>
+<title>ColorAid – Cámara en Vivo (Filtro Daltonismo)</title>
 
 <style>
-    body { margin:0; font-family:Arial; background:#f2f2f2; }
+    body { margin:0; font-family:Arial; background:#f2f2f2; text-align:center; }
     header { background:#005bbb; padding:15px; color:white; font-size:22px; }
-    .container { padding:20px; }
-    .mode-option {
-        background:white; padding:15px; margin:10px 0;
-        border-radius:10px; border-left:6px solid #007bff; cursor:pointer;
+    .mode-btn {
+        background:white; padding:12px; margin:10px auto;
+        width:80%; max-width:300px; border-radius:10px;
+        border-left:6px solid #007bff; cursor:pointer;
+        font-size:18px;
     }
-    .btn {
-        background:#007bff; color:white; padding:12px; border-radius:10px;
-        margin:10px 0; cursor:pointer; text-align:center;
+    video, canvas {
+        width:90%; max-width:400px; margin-top:15px;
+        border-radius:10px;
     }
-    canvas { margin-top:15px; max-width:100%; border-radius:10px; }
 </style>
 </head>
 
 <body>
 
-<header>ColorAid – Filtro Daltonismo (Matriz 3×3)</header>
+<header>ColorAid – Cámara en Vivo (Matriz 3×3)</header>
 
-<div class="container">
+<h2>Selecciona un modo de corrección</h2>
 
-    <h2>1. Sube una imagen</h2>
-    <input type="file" id="imageInput" accept="image/*">
+<div class="mode-btn" onclick="setMatrix('deuteranopia')">Deuteranopia</div>
+<div class="mode-btn" onclick="setMatrix('protanopia')">Protanopia</div>
+<div class="mode-btn" onclick="setMatrix('tritanopia')">Tritanopia</div>
 
-    <h2>2. Elige un modo</h2>
+<h3>Cámara con filtro aplicado:</h3>
 
-    <div class="mode-option" onclick="applyMatrix('deuteranopia')">
-        Deuteranopia (Rojo–Verde)
-    </div>
-
-    <div class="mode-option" onclick="applyMatrix('protanopia')">
-        Protanopia (Rojo débil)
-    </div>
-
-    <div class="mode-option" onclick="applyMatrix('tritanopia')">
-        Tritanopia (Azul–Amarillo)
-    </div>
-
-    <h2>3. Resultado</h2>
-    <canvas id="canvas"></canvas>
-
-</div>
+<video id="video" autoplay playsinline></video>
+<canvas id="canvas"></canvas>
 
 <script>
 // MATRICES 3×3 REALES
@@ -70,66 +56,62 @@ const matrices = {
     ]
 };
 
-let originalImg = new Image();
 let selectedMatrix = null;
+
+// Seleccionar matriz
+function setMatrix(type){
+    selectedMatrix = matrices[type];
+    alert("Filtro cargado ✔️");
+}
+
+// Iniciar cámara
+const video = document.getElementById("video");
+navigator.mediaDevices.getUserMedia({ video:true }).then(stream => {
+    video.srcObject = stream;
+});
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-// Cargar imagen desde el input
-document.getElementById("imageInput").addEventListener("change", function(e){
-    const file = e.target.files[0];
-    const reader = new FileReader();
+// Loop para procesar cada frame
+function processFrame(){
+    if(video.readyState === video.HAVE_ENOUGH_DATA){
+        // Ajustar canvas al tamaño del video
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
 
-    reader.onload = function(event){
-        originalImg = new Image();
-        originalImg.onload = function(){
-            canvas.width = originalImg.width;
-            canvas.height = originalImg.height;
-            ctx.drawImage(originalImg, 0, 0);
+        // Dibujar video en canvas
+        ctx.drawImage(video, 0, 0);
+
+        if(selectedMatrix){
+            let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            let data = frame.data;
+            let m = selectedMatrix;
+
+            for(let i=0; i<data.length; i+=4){
+                let r = data[i];
+                let g = data[i+1];
+                let b = data[i+2];
+
+                let nr = r*m[0][0] + g*m[0][1] + b*m[0][2];
+                let ng = r*m[1][0] + g*m[1][1] + b*m[1][2];
+                let nb = r*m[2][0] + g*m[2][1] + b*m[2][2];
+
+                data[i]   = Math.min(255, nr);
+                data[i+1] = Math.min(255, ng);
+                data[i+2] = Math.min(255, nb);
+            }
+
+            ctx.putImageData(frame, 0, 0);
         }
-        originalImg.src = event.target.result;
     }
 
-    if (file) reader.readAsDataURL(file);
-});
-
-// Aplicar filtro al elegir matriz
-function applyMatrix(type) {
-    if (!originalImg.src) {
-        alert("Primero sube una imagen, compita 😅");
-        return;
-    }
-
-    selectedMatrix = matrices[type];
-    filterImage();
+    requestAnimationFrame(processFrame);
 }
 
-// Procesar píxeles de la imagen
-function filterImage() {
-    ctx.drawImage(originalImg, 0, 0);
-    let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    let data = imageData.data;
-    let m = selectedMatrix;
-
-    for (let i = 0; i < data.length; i += 4) {
-        let r = data[i];
-        let g = data[i + 1];
-        let b = data[i + 2];
-
-        // aplicar matriz 3×3
-        let nr = r * m[0][0] + g * m[0][1] + b * m[0][2];
-        let ng = r * m[1][0] + g * m[1][1] + b * m[1][2];
-        let nb = r * m[2][0] + g * m[2][1] + b * m[2][2];
-
-        data[i]     = Math.min(255, nr);
-        data[i + 1] = Math.min(255, ng);
-        data[i + 2] = Math.min(255, nb);
-    }
-
-    ctx.putImageData(imageData, 0, 0);
-}
+processFrame();
 </script>
 
 </body>
 </html>
+
