@@ -122,35 +122,40 @@ function applyMatrixToImage(){
     imgCtx.putImageData(imgData, 0, 0);
 }
 
+
+<script>
+
 // ---------------- CÁMARA ------------------
 
 let cameraStream = null;
 let cameraRunning = false;
+let cameraLoop = null; // loop del filtro
 
 function startCamera(){
-    if(cameraRunning) return;
+    if(cameraRunning) return; // evita doble cámara
     cameraRunning = true;
 
-    // Mostrar elementos
-    document.getElementById("video").style.display = "block";
-    document.getElementById("videoCanvas").style.display = "block";
+    // Mostrar ambos (video + canvas filtrado)
+    video.style.display = "block";
+    videoCanvas.style.display = "block";
 
     navigator.mediaDevices.getUserMedia({
-        video: {
-            facingMode: { exact: "environment" } // 👈 CÁMARA TRASERA
-        }
+        video: { facingMode: { exact: "environment" } }
     })
     .then(stream => {
         cameraStream = stream;
         video.srcObject = stream;
+        startCameraLoop();
     })
     .catch(err => {
         alert("No pude abrir la cámara trasera 😢\nIntentaré con la delantera...");
         navigator.mediaDevices.getUserMedia({ video:true })
-            .then(stream => video.srcObject = stream);
+        .then(stream => {
+            cameraStream = stream;  // 👈 antes faltaba ESTO
+            video.srcObject = stream;
+            startCameraLoop();
+        });
     });
-
-    processCamera();
 }
 
 function stopCamera(){
@@ -158,52 +163,59 @@ function stopCamera(){
 
     if(cameraStream){
         cameraStream.getTracks().forEach(t => t.stop());
+        cameraStream = null;
     }
 
-    document.getElementById("video").style.display = "none";
-    document.getElementById("videoCanvas").style.display = "none";
+    cancelAnimationFrame(cameraLoop); // 👈 detiene el loop del filtro
+
+    video.style.display = "none";
+    videoCanvas.style.display = "none";
 }
 
-const video = document.getElementById("video");
-const videoCanvas = document.getElementById("videoCanvas");
-const vidCtx = videoCanvas.getContext("2d");
+function startCameraLoop(){
+    function render(){
+        if(!cameraRunning) return;
 
-function processCamera(){
-    if(!cameraRunning) return;
+        if(video.readyState === video.HAVE_ENOUGH_DATA){
 
-    if(video.readyState === video.HAVE_ENOUGH_DATA){
-        videoCanvas.width = video.videoWidth;
-        videoCanvas.height = video.videoHeight;
+            videoCanvas.width = video.videoWidth;
+            videoCanvas.height = video.videoHeight;
 
-        vidCtx.drawImage(video, 0, 0);
+            // cámara sin filtro
+            // (solo se muestra, no la tocamos)
 
-        if(selectedMatrix){
-            let frame = vidCtx.getImageData(0, 0, videoCanvas.width, videoCanvas.height);
-            let data = frame.data;
-            let m = selectedMatrix;
+            // cámara con filtro (canvas)
+            vidCtx.drawImage(video, 0, 0);
 
-            for(let i=0; i<data.length; i+=4){
-                let r = data[i], g = data[i+1], b = data[i+2];
+            if(selectedMatrix){
+                let frame = vidCtx.getImageData(0, 0, videoCanvas.width, videoCanvas.height);
+                let data = frame.data;
+                let m = selectedMatrix;
 
-                let nr = r*m[0][0] + g*m[0][1] + b*m[0][2];
-                let ng = r*m[1][0] + g*m[1][1] + b*m[1][2];
-                let nb = r*m[2][0] + g*m[2][1] + b*m[2][2];
+                for(let i=0; i<data.length; i+=4){
+                    let r = data[i], g = data[i+1], b = data[i+2];
+                    data[i]   = Math.min(255, r*m[0][0] + g*m[0][1] + b*m[0][2]);
+                    data[i+1] = Math.min(255, r*m[1][0] + g*m[1][1] + b*m[1][2]);
+                    data[i+2] = Math.min(255, r*m[2][0] + g*m[2][1] + b*m[2][2]);
+                }
 
-                data[i]   = Math.min(255, nr);
-                data[i+1] = Math.min(255, ng);
-                data[i+2] = Math.min(255, nb);
+                vidCtx.putImageData(frame, 0, 0);
             }
-
-            vidCtx.putImageData(frame, 0, 0);
         }
+
+        cameraLoop = requestAnimationFrame(render);
     }
 
-    requestAnimationFrame(processCamera);
+    render();
 }
+
+
+
 </script>
 
 </body>
 </html>
+
 
 
 
