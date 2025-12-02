@@ -67,13 +67,13 @@ const matrices = {
     ]
 };
 
-let selectedMatrix = null;
-
-// Selección de matriz
 function setMatrix(type){
     selectedMatrix = matrices[type];
-    alert("Filtro cargado ✔️");
+    if(originalImg.src){ 
+        applyMatrixToImage(); 
+    }
 }
+
 
 // ---------------- IMAGEN ------------------
 
@@ -204,5 +204,6 @@ function processCamera(){
 
 </body>
 </html>
+
 
 
