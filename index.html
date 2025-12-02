@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ColorAid – Imagen + Cámara (Filtro Daltonismo)</title>
+<title>ColorAid – Imagen + Cámara Opcional (Filtro Daltonismo)</title>
 
 <style>
     body { margin:0; font-family:Arial; background:#f2f2f2; text-align:center; }
@@ -15,6 +15,11 @@
         border-left:6px solid #007bff; cursor:pointer;
         font-size:18px;
     }
+    .action-btn {
+        background:#007bff; color:white; padding:12px; margin-top:15px;
+        border-radius:10px; width:80%; max-width:300px;
+        cursor:pointer; font-size:18px;
+    }
     video, canvas {
         width:90%; max-width:400px; margin-top:15px;
         border-radius:10px; background:black;
@@ -24,7 +29,7 @@
 
 <body>
 
-<header>ColorAid – Imagen + Cámara (Matriz 3×3)</header>
+<header>ColorAid – Imagen + Cámara Opcional</header>
 
 <h2>1. Selecciona un modo de corrección</h2>
 <div class="mode-btn" onclick="setMatrix('deuteranopia')">Deuteranopia</div>
@@ -36,9 +41,13 @@
 
 <canvas id="imageCanvas"></canvas>
 
-<h2>3. Cámara en vivo con filtro aplicado</h2>
-<video id="video" autoplay playsinline></video>
-<canvas id="videoCanvas"></canvas>
+<h2>3. Cámara (opcional)</h2>
+
+<div class="action-btn" onclick="startCamera()">Activar cámara con filtro</div>
+
+<!-- cámara oculta hasta que la activen -->
+<video id="video" autoplay playsinline style="display:none;"></video>
+<canvas id="videoCanvas" style="display:none;"></canvas>
 
 <script>
 // MATRICES 3×3 REALISTAS
@@ -92,7 +101,6 @@ document.getElementById("imageInput").addEventListener("change", function(e){
     if (file) reader.readAsDataURL(file);
 });
 
-// Aplicar matriz a imagen
 function applyMatrixToImage(){
     if(!selectedMatrix || !originalImg.src) return;
 
@@ -118,15 +126,28 @@ function applyMatrixToImage(){
 
 // ---------------- CÁMARA ------------------
 
+let cameraStarted = false;
+
+function startCamera(){
+    if(cameraStarted) return;
+
+    cameraStarted = true;
+
+    // mostrar elementos
+    document.getElementById("video").style.display = "block";
+    document.getElementById("videoCanvas").style.display = "block";
+
+    navigator.mediaDevices.getUserMedia({ video:true })
+    .then(stream => video.srcObject = stream)
+    .catch(err => alert("No se pudo acceder a la cámara 😢"));
+
+    processCamera();
+}
+
 const video = document.getElementById("video");
 const videoCanvas = document.getElementById("videoCanvas");
 const vidCtx = videoCanvas.getContext("2d");
 
-// Iniciar cámara
-navigator.mediaDevices.getUserMedia({ video:true })
-.then(stream => video.srcObject = stream);
-
-// Loop para la cámara
 function processCamera(){
     if(video.readyState === video.HAVE_ENOUGH_DATA){
         videoCanvas.width = video.videoWidth;
@@ -141,7 +162,7 @@ function processCamera(){
 
             for(let i=0; i<data.length; i+=4){
                 let r = data[i], g = data[i+1], b = data[i+2];
-                
+
                 let nr = r*m[0][0] + g*m[0][1] + b*m[0][2];
                 let ng = r*m[1][0] + g*m[1][1] + b*m[1][2];
                 let nb = r*m[2][0] + g*m[2][1] + b*m[2][2];
@@ -158,9 +179,9 @@ function processCamera(){
     requestAnimationFrame(processCamera);
 }
 
-processCamera();
 </script>
 
 </body>
 </html>
+
 
