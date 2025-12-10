@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ColorAid – Corrección Rápida y Test</title>
+<title>ColorAid – Corrección Rápida y Test Ishihara Real</title>
 
 <style>
     body { margin:0; font-family:Arial, sans-serif; background:#f2f2f2; text-align:center; padding-bottom: 50px; }
@@ -32,7 +32,6 @@
     .action-btn { background:#007bff; color:white; border-left:none; }
     .close-btn { background:#ff3b3b; color:white; border-left:none; display: none; }
     
-    /* Estilos del Test */
     .test-step {
         background: white;
         padding: 20px;
@@ -44,47 +43,33 @@
         text-align: left;
     }
 
-    .test-step h3 { color: #005bbb; margin-top: 0; }
     .test-step input[type="number"] {
         padding: 10px;
         font-size: 18px;
         width: 100px;
-        margin-right: 10px;
         border: 1px solid #ccc;
         border-radius: 5px;
     }
-    
-    .test-input-btn {
-        display: inline-block;
-        width: auto;
-        max-width: 100px;
-        background: #28a745;
-        color: white;
-        border: none;
-        border-left: none;
-    }
-    
-    /* Canvases */
+
     canvas {
         width:90%; max-width:400px; margin-top:15px;
-        border-radius:10px; background:black;
+        border-radius:10px; background:#ddd;
         display: block; margin-left: auto; margin-right: auto;
     }
-    
+
     #videoElement { display: none; }
-    #testCanvas { background: #eee; }
 </style>
 </head>
 
 <body>
 
-<header>ColorAid</header>
+<header>ColorAid – Corrección y Test</header>
 
-<h2>1. Selecciona el modo</h2>
+<h2>1. Selecciona el modo de corrección</h2>
 <div class="mode-container">
-    <div class="mode-btn" onclick="setMatrix('deuteranopia')">Deuteranopia (Rojo/Verde)</div>
-    <div class="mode-btn" onclick="setMatrix('protanopia')">Protanopia (Rojo opaco)</div>
-    <div class="mode-btn" onclick="setMatrix('tritanopia')">Tritanopia (Azul/Amarillo)</div>
+    <div class="mode-btn" onclick="setMatrix('deuteranopia')">Deuteranopia</div>
+    <div class="mode-btn" onclick="setMatrix('protanopia')">Protanopia</div>
+    <div class="mode-btn" onclick="setMatrix('tritanopia')">Tritanopia</div>
 </div>
 
 <h2>2. Subir imagen</h2>
@@ -94,57 +79,28 @@
 <h2>3. Cámara en vivo</h2>
 <div class="action-btn" id="btnStart" onclick="startCamera()">Activar cámara</div>
 <div class="close-btn" id="btnStop" onclick="stopCamera()">Detener cámara</div>
-
 <canvas id="videoCanvas" style="display:none;"></canvas>
-
 <video id="videoElement" autoplay playsinline></video>
 
 <hr>
 
-<h2>4. Test de Color (Ishihara Simple)</h2>
+<h2>4. Test de Color Ishihara (Placas reales)</h2>
 <div class="action-btn" id="testStartBtn" onclick="startTest()">Iniciar Test</div>
-<div id="testResult" style="margin-top:20px; font-size:18px; font-weight:bold; color:#005bbb;"></div>
 
 <canvas id="testCanvas" style="display:none;"></canvas>
 
-<div class="test-container">
-    <div id="step1" class="test-step">
-        <h3>Placa 1</h3>
-        <p>¿Qué número ves en la placa de arriba?</p>
-        <input type="number" id="ans1" placeholder="Número">
-        <div class="test-input-btn" onclick="checkAnswer(1, 12)">Siguiente</div>
-    </div>
-    <div id="step2" class="test-step">
-        <h3>Placa 2</h3>
-        <p>¿Qué número ves?</p>
-        <input type="number" id="ans2" placeholder="Número">
-        <div class="test-input-btn" onclick="checkAnswer(2, 8)">Siguiente</div>
-    </div>
-    <div id="step3" class="test-step">
-        <h3>Placa 3</h3>
-        <p>¿Qué número ves?</p>
-        <input type="number" id="ans3" placeholder="Número">
-        <div class="test-input-btn" onclick="checkAnswer(3, 29)">Finalizar</div>
-    </div>
+<div class="test-step" id="testInputBox">
+    <p>¿Qué número ves?</p>
+    <input type="number" id="testAnswer">
+    <div class="test-input-btn" onclick="submitAnswer()">Responder</div>
 </div>
 
+<div id="testResult" style="margin:20px; font-size:18px; font-weight:bold; color:#005bbb;"></div>
+
 <script>
-// --- VARIABLES GLOBALES ---
+// ---------------- MATRICES DE CORRECCIÓN ----------------
 let selectedMatrix = null;
-let cameraStream = null;
-let cameraRunning = false;
-let animationId = null;
 
-// --- VARIABLES DEL TEST (LISTA DE NÚMEROS A DIBUJAR) ---
-// Ya no necesitamos URLs de imagen, el código las dibuja.
-const testNumbers = [12, 8, 29]; 
-let testStep = 0;
-let testCorrect = 0;
-const testCanvas = document.getElementById("testCanvas");
-const testCtx = testCanvas.getContext("2d");
-
-
-// --- MATRICES 3×3 ---
 const matrices = {
     deuteranopia: [
         [0.625, 0.375, 0.000],
@@ -166,13 +122,10 @@ const matrices = {
 function setMatrix(type){
     selectedMatrix = matrices[type];
     alert("Modo activado: " + type);
-    
-    if(originalImg.src && !cameraRunning){ 
-        applyMatrixToImage(); 
-    }
+    if(originalImg.src && !cameraRunning) applyMatrixToImage();
 }
 
-// ---------------- LÓGICA DE IMAGEN ESTÁTICA ------------------
+// ---------------- SUBIR IMAGEN ----------------
 let originalImg = new Image();
 const imageCanvas = document.getElementById("imageCanvas");
 const imgCtx = imageCanvas.getContext("2d");
@@ -180,23 +133,19 @@ const imgCtx = imageCanvas.getContext("2d");
 document.getElementById("imageInput").addEventListener("change", function(e){
     const file = e.target.files[0];
     if(!file) return;
-    
+
     if(cameraRunning) stopCamera();
 
     const reader = new FileReader();
     reader.onload = function(event){
         originalImg = new Image();
         originalImg.onload = function(){
-            const MAX_IMG_WIDTH = 800;
-            let scale = 1;
-            if(originalImg.width > MAX_IMG_WIDTH){
-                scale = MAX_IMG_WIDTH / originalImg.width;
-            }
-            imageCanvas.width = originalImg.width * scale;
+            const scale = 800 / originalImg.width;
+            imageCanvas.width = 800;
             imageCanvas.height = originalImg.height * scale;
 
             imgCtx.drawImage(originalImg, 0, 0, imageCanvas.width, imageCanvas.height);
-            
+
             if(selectedMatrix) applyMatrixToImage();
         }
         originalImg.src = event.target.result;
@@ -214,272 +163,159 @@ function applyMatrixToImage(){
     imgCtx.putImageData(imgData, 0, 0);
 }
 
-// ---------------- LÓGICA DE CÁMARA (OPTIMIZADA) ------------------
-const videoElement = document.getElementById("videoElement");
+// ---------------- FILTRO ----------------
+function filterData(data, m){
+    for(let i=0; i<data.length; i+=4){
+        let r = data[i], g = data[i+1], b = data[i+2];
+
+        let nr = r*m[0][0] + g*m[0][1] + b*m[0][2];
+        let ng = r*m[1][0] + g*m[1][1] + b*m[1][2];
+        let nb = r*m[2][0] + g*m[2][1] + b*m[2][2];
+
+        data[i]   = Math.min(255, Math.max(0, nr));
+        data[i+1] = Math.min(255, Math.max(0, ng));
+        data[i+2] = Math.min(255, Math.max(0, nb));
+    }
+}
+
+// ---------------- CÁMARA ----------------
+let cameraStream = null;
+let cameraRunning = false;
+let animationId = null;
+
 const videoCanvas = document.getElementById("videoCanvas");
-const vidCtx = videoCanvas.getContext("2d", { willReadFrequently: true }); 
+const videoElement = document.getElementById("videoElement");
+const vidCtx = videoCanvas.getContext("2d", { willReadFrequently: true });
 
 function startCamera(){
-    if(cameraRunning) return;
-
-    // Ocultar test
-    document.getElementById("testCanvas").style.display = "none";
-    document.getElementById("testStartBtn").style.display = "block";
-    document.querySelectorAll('.test-step').forEach(el => el.style.display = 'none');
-    testStep = 0; // Resetear test
-
-    // UI Updates
-    document.getElementById("videoCanvas").style.display = "block";
-    document.getElementById("imageCanvas").style.display = "none";
-    document.getElementById("btnStart").style.display = "none";
-    document.getElementById("btnStop").style.display = "block";
-
-    const constraints = {
-        audio: false,
-        video: {
-            facingMode: "environment",
-            width: { ideal: 640 },
-            height: { ideal: 480 }
-        }
-    };
-
-    navigator.mediaDevices.getUserMedia(constraints)
+    navigator.mediaDevices.getUserMedia({ video:{ facingMode: "environment" }})
     .then(stream => {
         cameraStream = stream;
         videoElement.srcObject = stream;
         cameraRunning = true;
-        videoElement.play();
-        requestAnimationFrame(processCameraLoop);
-    })
-    .catch(err => {
-        console.error(err);
-        alert("Error al acceder a la cámara. Asegúrate de dar permisos o usar HTTPS.");
-        stopCamera();
+
+        document.getElementById("videoCanvas").style.display = "block";
+        document.getElementById("btnStart").style.display = "none";
+        document.getElementById("btnStop").style.display = "block";
+
+        requestAnimationFrame(processCamera);
     });
 }
 
 function stopCamera(){
     cameraRunning = false;
-    if(animationId) cancelAnimationFrame(animationId);
-
     if(cameraStream){
         cameraStream.getTracks().forEach(track => track.stop());
-        cameraStream = null;
     }
-    
-    videoElement.srcObject = null;
-
-    // UI Updates
-    document.getElementById("videoCanvas").style.display = "none";
-    document.getElementById("imageCanvas").style.display = "block";
     document.getElementById("btnStart").style.display = "block";
     document.getElementById("btnStop").style.display = "none";
+    videoCanvas.style.display = "none";
 }
 
-function processCameraLoop(){
+function processCamera(){
     if(!cameraRunning) return;
 
-    if(videoElement.readyState === videoElement.HAVE_ENOUGH_DATA){
-        
-        const MAX_WIDTH = 400; 
-        const scale = Math.min(1, MAX_WIDTH / videoElement.videoWidth);
-        
-        videoCanvas.width = videoElement.videoWidth * scale;
-        videoCanvas.height = videoElement.videoHeight * scale;
+    videoCanvas.width = videoElement.videoWidth;
+    videoCanvas.height = videoElement.videoHeight;
 
-        vidCtx.drawImage(videoElement, 0, 0, videoCanvas.width, videoCanvas.height);
+    vidCtx.drawImage(videoElement, 0, 0);
 
-        if(selectedMatrix){
-            let frame = vidCtx.getImageData(0, 0, videoCanvas.width, videoCanvas.height);
-            filterData(frame.data, selectedMatrix);
-            vidCtx.putImageData(frame, 0, 0);
-        }
+    if(selectedMatrix){
+        let frame = vidCtx.getImageData(0, 0, videoCanvas.width, videoCanvas.height);
+        filterData(frame.data, selectedMatrix);
+        vidCtx.putImageData(frame, 0, 0);
     }
 
-    animationId = requestAnimationFrame(processCameraLoop);
+    animationId = requestAnimationFrame(processCamera);
 }
 
-// ---------------- FUNCIÓN DE FILTRADO COMPARTIDA ------------------
-function filterData(data, m){
-    for(let i=0; i<data.length; i+=4){
-        let r = data[i];
-        let g = data[i+1];
-        let b = data[i+2];
+// ---------------- TEST ISHIHARA REAL ----------------
+const testCanvas = document.getElementById("testCanvas");
+const testCtx = testCanvas.getContext("2d");
 
-        // Multiplicación de matriz: r*m[fila][columna]
-        let nr = r*m[0][0] + g*m[0][1] + b*m[0][2];
-        let ng = r*m[1][0] + g*m[1][1] + b*m[1][2];
-        let nb = r*m[2][0] + g*m[2][1] + b*m[2][2];
+let plates = [
+    { src: "plates/12.jpg", answer: 12 },
+    { src: "plates/8.jpg", answer: 8 },
+    { src: "plates/29.jpg", answer: 29 },
+    { src: "plates/57.jpg", answer: 57 },
+    { src: "plates/5.jpg", answer: 5 },
+    { src: "plates/3.jpg", answer: 3 }
+];
 
-        // Asegurar que los valores RGB estén entre 0 y 255
-        data[i]   = Math.max(0, Math.min(255, nr)); 
-        data[i+1] = Math.max(0, Math.min(255, ng)); 
-        data[i+2] = Math.max(0, Math.min(255, nb));
-    }
-}
-
-// ---------------- LÓGICA DEL TEST (AHORA DIBUJA CON CANVAS) ------------------
-
-// Nueva función para dibujar una placa Ishihara simplificada en el canvas
-function drawIshiharaPlate(ctx, targetNumber, W, H) {
-    // Rellenar con color base
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, W, H);
-    
-    const centerX = W / 2;
-    const centerY = H / 2;
-    const numCircles = 800; // Suficientes círculos para crear el patrón
-    
-    // Configuración para el patrón R/V (deuteranopia/protanopia)
-    const BG_HUE_RANGE = [90, 150]; // Verde a amarillo-verde
-    const NUM_HUE_RANGE = [330, 30]; // Rojo a naranja-rojo (el 30 pasa por 360/0)
-    
-    // Dibuja el fondo y el número con muchos círculos
-    for (let i = 0; i < numCircles; i++) {
-        let x = Math.random() * W; 
-        let y = Math.random() * H; 
-        let r = Math.random() * 7 + 2; // Radio de 2 a 9
-        
-        let isNumberArea = false;
-        
-        // Simulación muy simplificada del área del número (usando el texto)
-        ctx.save();
-        ctx.font = `bold ${W / 3}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        // Determina si el punto (x, y) cae sobre el área donde se "dibujará" el número
-        // Esto es complejo de calcular precisamente, simplificamos con un área central
-        if (Math.abs(x - centerX) < W / 3 && Math.abs(y - centerY) < H / 3) {
-            isNumberArea = true;
-        }
-        ctx.restore();
-
-        let hue;
-        if (isNumberArea && Math.random() < 0.8) { // 80% de probabilidad de ser color de número en el área central
-            // Colores del número
-            hue = Math.floor(Math.random() * (NUM_HUE_RANGE[1] + 360 - NUM_HUE_RANGE[0])) % 360;
-        } else {
-            // Colores de fondo
-            hue = Math.floor(Math.random() * (BG_HUE_RANGE[1] - BG_HUE_RANGE[0]) + BG_HUE_RANGE[0]);
-        }
-        
-        const sat = Math.floor(Math.random() * 30 + 60); // 60-90
-        const light = Math.floor(Math.random() * 20 + 40); // 40-60
-
-        ctx.fillStyle = `hsl(${hue}, ${sat}%, ${light}%)`;
-        
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fill();
-    }
-    
-    // Para asegurar que el número es visible y legible
-    ctx.font = `bold ${W / 3.5}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = "#FFF"; // Color blanco temporal para el "stencil"
-    
-    // Dibujar el número en el centro
-    ctx.fillText(targetNumber.toString(), centerX, centerY);
-}
+let step = 0;
+let correct = 0;
 
 function startTest(){
-    if (cameraRunning) stopCamera();
-    
-    // Ocultar canvases de imagen/video
-    document.getElementById("imageCanvas").style.display = "none";
-    document.getElementById("videoCanvas").style.display = "none";
+    stopCamera();
+
+    step = 0;
+    correct = 0;
 
     document.getElementById("testResult").textContent = "";
     document.getElementById("testStartBtn").style.display = "none";
-    testStep = 0;
-    testCorrect = 0;
-    
-    // Ya no se llama a loadTestImages, vamos directo a dibujar la placa
-    nextTestStep();
+
+    nextPlate();
 }
 
-// NOTA: La función loadTestImages ha sido eliminada.
+function nextPlate(){
+    step++;
 
-function nextTestStep(){
-    testStep++;
-    
-    // Ocultar todos los pasos
-    document.querySelectorAll('.test-step').forEach(el => el.style.display = 'none');
-
-    if (testStep > testNumbers.length) {
+    if(step > plates.length){
         finishTest();
         return;
     }
 
-    // Mostrar el paso actual
-    const currentStepDiv = document.getElementById(`step${testStep}`);
-    currentStepDiv.style.display = 'block';
-    document.getElementById(`ans${testStep}`).value = ''; // Limpiar campo de respuesta
+    const img = new Image();
+    img.onload = function(){
+        testCanvas.style.display = "block";
 
-    // Mostrar el canvas y dibujar la placa SIN filtro
-    document.getElementById("testCanvas").style.display = "block";
-    testCanvas.width = 200;
-    testCanvas.height = 200;
-    
-    const numberToDraw = testNumbers[testStep - 1];
-    drawIshiharaPlate(testCtx, numberToDraw, testCanvas.width, testCanvas.height);
+        testCanvas.width = 350;
+        testCanvas.height = 350;
+
+        testCtx.drawImage(img, 0, 0, 350, 350);
+    };
+    img.src = plates[step-1].src;
+
+    document.getElementById("testAnswer").value = "";
+    document.getElementById("testInputBox").style.display = "block";
 }
 
-function checkAnswer(step, correctAnswer){
-    const userAnswer = parseInt(document.getElementById(`ans${step}`).value);
-    
-    if (isNaN(userAnswer)) {
-        alert("Por favor, ingresa un número.");
-        return;
-    }
-    
-    // 1. Verificar la respuesta de la persona sin ayuda (Diagnóstico)
-    let isCorrectWithoutAid = (userAnswer === correctAnswer);
-    
-    if (isCorrectWithoutAid) {
-        testCorrect++;
-    }
+function submitAnswer(){
+    const user = parseInt(document.getElementById("testAnswer").value);
+    const correctAns = plates[step-1].answer;
 
-    // 2. Simular el efecto ColorAid (¡La característica clave!)
+    if(user === correctAns) correct++;
+
     if(selectedMatrix){
-        // Primero, redibujar la placa original (sin filtro)
-        const numberToDraw = testNumbers[step - 1];
-        drawIshiharaPlate(testCtx, numberToDraw, testCanvas.width, testCanvas.height);
-        
-        // Luego, aplicar el filtro a la placa recién dibujada
-        let imgData = testCtx.getImageData(0, 0, testCanvas.width, testCanvas.height);
+        let imgData = testCtx.getImageData(0, 0, 350, 350);
         filterData(imgData.data, selectedMatrix);
         testCtx.putImageData(imgData, 0, 0);
-        
-        alert(`Tu respuesta fue: ${userAnswer}. El número correcto era: ${correctAnswer}.\n\nAhora, con la corrección de ColorAid aplicada, intenta ver el número nuevamente.`);
+
+        alert("Placa corregida con ColorAid.\nObserva si ahora ves mejor el número.");
+        setTimeout(nextPlate, 2000);
     } else {
-        alert(`Tu respuesta fue: ${userAnswer}. El número correcto era: ${correctAnswer}.\n\nSelecciona un modo de corrección (Deuteranopia, Protanopia o Tritanopia) en el Paso 1 para ver el efecto ColorAid.`);
+        nextPlate();
     }
-
-    // 3. Pasar al siguiente paso después de un breve tiempo para que vea el resultado filtrado
-    setTimeout(nextTestStep, 3000); // Espera 3 segundos
 }
-
 
 function finishTest(){
-    document.getElementById("testCanvas").style.display = "none";
+    testCanvas.style.display = "none";
+    document.getElementById("testInputBox").style.display = "none";
     document.getElementById("testStartBtn").style.display = "block";
-    
-    let resultText = `✅ Test Finalizado. Aciertos: ${testCorrect} de ${testNumbers.length}.\n`;
-    
-    if (testCorrect === testNumbers.length) {
-        resultText += "¡Excelente! No pareces tener problemas significativos de visión de color con estas placas.";
-    } else if (testCorrect >= testNumbers.length / 2) {
-        resultText += "Podrías tener una deficiencia leve de visión de color. Consulta un especialista.";
+
+    let msg = `Aciertos: ${correct} de ${plates.length}. `;
+
+    if(correct === plates.length){
+        msg += "No se observan indicios de daltonismo.";
+    } else if(correct >= plates.length / 2){
+        msg += "Podrías tener una deficiencia leve.";
     } else {
-        resultText += "Es probable que tengas una deficiencia de visión de color (daltonismo). Consulta un especialista.";
+        msg += "Alto indicio de daltonismo. Se recomienda evaluación profesional.";
     }
-    
-    document.getElementById("testResult").textContent = resultText;
-    
-    testStep = 0; // Resetear para poder re-iniciar
+
+    document.getElementById("testResult").textContent = msg;
 }
+
 </script>
 
 </body>
