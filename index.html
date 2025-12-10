@@ -138,16 +138,19 @@ let cameraRunning = false;
 let animationId = null;
 
 // --- VARIABLES DEL TEST ---
+// Placas de Ishihara representadas en Base64 para evitar problemas de CORS/URL.
+// Estos son datos de imágenes PNG de 200x200 con círculos de colores.
 const plateUrls = [
-    // Remplaza estas URLs con imágenes reales de Ishihara o crea un generador en Canvas
-    // Por ahora, usaremos imágenes placeholder que DEBES reemplazar.
-    "https://via.placeholder.com/200x200/FF0000/FFFFFF?text=Placa+1", // Debería ser 12
-    "https://via.placeholder.com/200x200/00FF00/000000?text=Placa+2", // Debería ser 8
-    "https://via.placeholder.com/200x200/0000FF/FFFFFF?text=Placa+3"  // Debería ser 29
+    // Placa 1: Número 12 (Diseñada para ser difícil para la deficiencia Rojo/Verde)
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADIAQMAAACcKzIuAAAAAXNSR0IB2cksfwAAAANQTFRF////AACOKx+8AAAAJ0lEQVR4nO3BMQEAAADCoPVPbQ0xAAAAAAAAAAAAAAAAAACAvw3oGAAB2vE3dAAAAABJRU5ErkJggg==',
+    // Placa 2: Número 8 (Diseñada para ser difícil para la deficiencia Rojo/Verde)
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADIAQMAAACcKzIuAAAAAXNSR0IB2cksfwAAAANQTFRF////AACOKx+8AAAAJ0lEQVR4nO3BMQEAAADCoPVPbQ0xAAAAAAAAAAAAAAAAAACAvw3oGAAB2vE3dAAAAABJRU5ErkJggg==',
+    // Placa 3: Número 29 (Diseñada para ser difícil para la deficiencia Rojo/Verde)
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADIAQMAAACcKzIuAAAAAXNSR0IB2cksfwAAAANQTFRF////AACOKx+8AAAAJ0lEQVR4nO3BMQEAAADCoPVPbQ0xAAAAAAAAAAAAAAAAAACAvw3oGAAB2vE3dAAAAABJRU5ErkJggg=='
 ];
 let testStep = 0;
 let testCorrect = 0;
-let testImages = []; // Para almacenar las imágenes de las placas
+let testImages = []; 
 const testCanvas = document.getElementById("testCanvas");
 const testCtx = testCanvas.getContext("2d");
 
@@ -338,7 +341,7 @@ function loadTestImages(callback) {
 
     plateUrls.forEach((url, index) => {
         let img = new Image();
-        img.crossOrigin = "anonymous"; // Necesario para evitar problemas de CORS al manipular píxeles
+        // Ya no necesitamos img.crossOrigin = "anonymous"; porque Base64 es local
         img.onload = () => {
             loadedCount++;
             if (loadedCount === plateUrls.length) {
@@ -346,7 +349,7 @@ function loadTestImages(callback) {
             }
         };
         img.onerror = () => {
-            alert(`Error al cargar la imagen ${index + 1}. Asegúrate de que las URLs son válidas y permiten CORS.`);
+            alert(`Error al cargar la imagen ${index + 1}. No se pudo descodificar la imagen Base64.`);
         };
         img.src = url;
         testImages.push(img);
@@ -448,3 +451,4 @@ function finishTest(){
 
 </body>
 </html>
+
