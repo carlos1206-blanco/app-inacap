@@ -3,50 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ColorAid – Corrección Rápida y Test Ishihara Real</title>
+<title>ColorAid – Corrección y Test Ishihara</title>
 
 <style>
     body { margin:0; font-family:Arial, sans-serif; background:#f2f2f2; text-align:center; padding-bottom: 50px; }
     header { background:#005bbb; padding:15px; color:white; font-size:22px; font-weight: bold; }
     h2 { margin-top:25px; color: #333; }
-    
-    .mode-container, .test-container {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 10px;
-        padding: 10px;
+
+    .mode-container {
+        display:flex; flex-wrap:wrap; justify-content:center; gap:10px; padding:10px;
     }
 
-    .mode-btn, .action-btn, .close-btn, #testStartBtn, .test-input-btn {
-        background:white; padding:12px; 
-        width: 100%; max-width:300px; border-radius:10px;
-        border-left:6px solid #007bff; cursor:pointer;
-        font-size:16px; user-select: none;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        margin: 5px auto;
+    .mode-btn, .action-btn, .close-btn, .test-input-btn {
+        background:white; padding:12px; width:100%; max-width:300px;
+        border-radius:10px; border-left:6px solid #007bff;
+        cursor:pointer; font-size:16px; box-shadow:0 2px 5px rgba(0,0,0,0.1);
         transition: transform 0.1s;
     }
-    
-    .action-btn { background:#007bff; color:white; border-left:none; }
-    .close-btn { background:#ff3b3b; color:white; border-left:none; display:none; }
+    .action-btn{ background:#007bff; color:white; border-left:none; }
+    .close-btn{ background:#ff3b3b; color:white; border-left:none; display:none; }
 
-    canvas {
-        width:90%; max-width:380px; background:#ddd;
-        border-radius:10px; margin:15px auto; display:block;
-    }
+    canvas{ width:90%; max-width:380px; background:#ddd; border-radius:10px; margin:15px auto; display:block; }
 
-    .test-step {
+    .test-step{
         background:white; padding:20px; margin:20px auto;
-        max-width:400px; border-radius:10px;
-        box-shadow:0 4px 10px rgba(0,0,0,0.15);
+        max-width:380px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.15);
     }
 
-    .test-step input[type="number"] {
-        padding:10px; font-size:18px; width:120px;
-        border-radius:6px; border:1px solid #aaa;
+    .test-step input[type="number"]{
+        width:120px; padding:10px; font-size:18px; border-radius:6px; border:1px solid #aaa;
     }
-
 </style>
 </head>
 
@@ -54,7 +40,6 @@
 
 <header>ColorAid – Corrección y Test Ishihara</header>
 
-<!-- 1. Selección de modo -->
 <h2>1. Selecciona el modo</h2>
 <div class="mode-container">
     <div class="mode-btn" onclick="setMatrix('deuteranopia')">Deuteranopia</div>
@@ -62,23 +47,20 @@
     <div class="mode-btn" onclick="setMatrix('tritanopia')">Tritanopia</div>
 </div>
 
-<!-- 2. Imagen -->
 <h2>2. Subir imagen</h2>
-<input type="file" id="imageInput" accept="image/*">
+<input type="file" id="imageInput">
 <canvas id="imageCanvas"></canvas>
 
-<!-- 3. Cámara -->
 <h2>3. Cámara en vivo</h2>
-<div class="action-btn" id="btnStart" onclick="startCamera()">Activar cámara</div>
-<div class="close-btn" id="btnStop" onclick="stopCamera()">Detener cámara</div>
+<div id="btnStart" class="action-btn" onclick="startCamera()">Activar cámara</div>
+<div id="btnStop" class="close-btn" onclick="stopCamera()">Detener cámara</div>
 <canvas id="videoCanvas" style="display:none;"></canvas>
 <video id="videoElement" autoplay playsinline></video>
 
 <hr>
 
-<!-- 4. Test -->
-<h2>4. Test de Color Ishihara (Imágenes reales)</h2>
-<div class="action-btn" id="testStartBtn" onclick="startTest()">Iniciar Test</div>
+<h2>4. Test Ishihara</h2>
+<div id="testStartBtn" class="action-btn" onclick="startTest()">Iniciar Test</div>
 
 <canvas id="testCanvas" style="display:none;"></canvas>
 
@@ -88,29 +70,29 @@
     <div class="test-input-btn" onclick="submitAnswer()">Responder</div>
 </div>
 
-<div id="testResult" style="margin:20px; font-size:18px; font-weight:bold; color:#005bbb;"></div>
+<div id="testResult" style="margin:20px; font-size:18px; font-weight:bold;"></div>
 
 <script>
-// --------------------------------------------
-// MATRICES DE CORRECCIÓN
-// --------------------------------------------
+// =========================================================
+// MATRICES
+// =========================================================
 let selectedMatrix = null;
 
 const matrices = {
     deuteranopia: [
-        [0.625, 0.375, 0.000],
-        [0.700, 0.300, 0.000],
-        [0.000, 0.300, 0.700]
+        [0.625, 0.375, 0],
+        [0.7, 0.3, 0],
+        [0, 0.3, 0.7]
     ],
     protanopia: [
-        [0.567, 0.433, 0.000],
-        [0.558, 0.442, 0.000],
-        [0.000, 0.242, 0.758]
+        [0.567, 0.433, 0],
+        [0.558, 0.442, 0],
+        [0, 0.242, 0.758]
     ],
     tritanopia: [
-        [0.950, 0.050, 0.000],
-        [0.000, 0.433, 0.567],
-        [0.000, 0.475, 0.525]
+        [0.95, 0.05, 0],
+        [0, 0.433, 0.567],
+        [0, 0.475, 0.525]
     ]
 };
 
@@ -119,68 +101,68 @@ function setMatrix(type){
     alert("Modo activado: " + type);
 }
 
-// --------------------------------------------
-// CARGA DE IMAGEN
-// --------------------------------------------
+// =========================================================
+// SUBIR IMAGEN
+// =========================================================
 let originalImg = new Image();
 const imageCanvas = document.getElementById("imageCanvas");
 const imgCtx = imageCanvas.getContext("2d");
 
 document.getElementById("imageInput").addEventListener("change", e=>{
-    const file = e.target.files[0];
+    const file=e.target.files[0];
     if(!file) return;
 
-    const reader = new FileReader();
-    reader.onload = ev=>{
-        originalImg = new Image();
-        originalImg.onload = ()=>{
+    const reader=new FileReader();
+    reader.onload=ev=>{
+        originalImg=new Image();
+        originalImg.onload=()=>{
             let scale = 800 / originalImg.width;
-            imageCanvas.width = 800;
-            imageCanvas.height = originalImg.height * scale;
+            imageCanvas.width=800;
+            imageCanvas.height=originalImg.height*scale;
 
-            imgCtx.drawImage(originalImg, 0, 0, imageCanvas.width, imageCanvas.height);
+            imgCtx.drawImage(originalImg,0,0,imageCanvas.width,imageCanvas.height);
 
-            if(selectedMatrix) applyMatrix(imageCanvas, imgCtx);
+            if(selectedMatrix) applyMatrix(imageCanvas,imgCtx);
         };
-        originalImg.src = ev.target.result;
+        originalImg.src=ev.target.result;
     };
     reader.readAsDataURL(file);
 });
 
 function applyMatrix(canvas, ctx){
     let img = ctx.getImageData(0,0,canvas.width,canvas.height);
-    let data = img.data;
+    let d = img.data;
 
-    for(let i=0;i<data.length;i+=4){
-        let r=data[i], g=data[i+1], b=data[i+2];
+    for(let i=0; i<d.length; i+=4){
+        let r=d[i], g=d[i+1], b=d[i+2];
 
         let nr=r*selectedMatrix[0][0] + g*selectedMatrix[0][1] + b*selectedMatrix[0][2];
         let ng=r*selectedMatrix[1][0] + g*selectedMatrix[1][1] + b*selectedMatrix[1][2];
         let nb=r*selectedMatrix[2][0] + g*selectedMatrix[2][1] + b*selectedMatrix[2][2];
 
-        data[i]  = Math.min(255, Math.max(0,nr));
-        data[i+1]= Math.min(255, Math.max(0,ng));
-        data[i+2]= Math.min(255, Math.max(0,nb));
+        d[i]  = Math.min(255, Math.max(0,nr));
+        d[i+1]= Math.min(255, Math.max(0,ng));
+        d[i+2]= Math.min(255, Math.max(0,nb));
     }
 
     ctx.putImageData(img,0,0);
 }
 
-// --------------------------------------------
+// =========================================================
 // CÁMARA
-// --------------------------------------------
-let cameraStream=null, cameraRunning=false;
+// =========================================================
+let cameraStream=null; 
+let running=false;
 
 const videoCanvas=document.getElementById("videoCanvas");
 const videoElement=document.getElementById("videoElement");
 const vidCtx=videoCanvas.getContext("2d",{willReadFrequently:true});
 
 function startCamera(){
-    navigator.mediaDevices.getUserMedia({video:true})
-    .then(stream=>{
+    navigator.mediaDevices.getUserMedia({ video:true }).then(stream=>{
         cameraStream=stream;
+        running=true;
         videoElement.srcObject=stream;
-        cameraRunning=true;
 
         document.getElementById("btnStart").style.display="none";
         document.getElementById("btnStop").style.display="block";
@@ -191,38 +173,40 @@ function startCamera(){
 }
 
 function loopCamera(){
-    if(!cameraRunning) return;
+    if(!running) return;
 
     videoCanvas.width=videoElement.videoWidth;
     videoCanvas.height=videoElement.videoHeight;
 
     vidCtx.drawImage(videoElement,0,0);
 
-    if(selectedMatrix) applyMatrix(videoCanvas, vidCtx);
+    if(selectedMatrix) applyMatrix(videoCanvas,vidCtx);
 
     requestAnimationFrame(loopCamera);
 }
 
 function stopCamera(){
-    cameraRunning=false;
-    if(cameraStream) cameraStream.getTracks().forEach(t=>t.stop());
+    running=false;
+    if(cameraStream){
+        cameraStream.getTracks().forEach(t=>t.stop());
+    }
     document.getElementById("btnStart").style.display="block";
     document.getElementById("btnStop").style.display="none";
     videoCanvas.style.display="none";
 }
 
-// --------------------------------------------
-// TEST ISHIHARA (SIN CARPETAS – SOLO URLs)
-// --------------------------------------------
+// =========================================================
+// TEST ISHIHARA — SOLO HTML, SIN CARPETAS
+// =========================================================
+// Placas reales en URLs que SÍ funcionan
 
-// Estas URLs funcionan sin carpeta
 let plates = [
-    { src: "https://i.imgur.com/k0vD2hC.png", answer: 12 },
-    { src: "https://i.imgur.com/j3E2nEM.png", answer: 8 },
-    { src: "https://i.imgur.com/0gq8pnn.png", answer: 29 },
-    { src: "https://i.imgur.com/AMjsH9G.png", answer: 57 },
-    { src: "https://i.imgur.com/iMZcuE3.png", answer: 5 },
-    { src: "https://i.imgur.com/veR9g8W.png", answer: 3 }
+    { src:"https://raw.githubusercontent.com/tecnicos-aseo/ishihara/main/12.png", answer:12 },
+    { src:"https://raw.githubusercontent.com/tecnicos-aseo/ishihara/main/8.png", answer:8 },
+    { src:"https://raw.githubusercontent.com/tecnicos-aseo/ishihara/main/29.png", answer:29 },
+    { src:"https://raw.githubusercontent.com/tecnicos-aseo/ishihara/main/57.png", answer:57 },
+    { src:"https://raw.githubusercontent.com/tecnicos-aseo/ishihara/main/5.png", answer:5 },
+    { src:"https://raw.githubusercontent.com/tecnicos-aseo/ishihara/main/3.png", answer:3 }
 ];
 
 let step=0, correct=0;
@@ -252,7 +236,7 @@ function nextPlate(){
     }
 
     const img=new Image();
-    img.crossOrigin="anonymous"; 
+    img.crossOrigin="anonymous";
     img.onload=function(){
         testCanvas.style.display="block";
         testCanvas.width=350;
@@ -266,14 +250,14 @@ function nextPlate(){
 }
 
 function submitAnswer(){
-    let val=parseInt(document.getElementById("testAnswer").value);
+    let user=parseInt(document.getElementById("testAnswer").value);
     let correctAns=plates[step-1].answer;
 
-    if(val === correctAns) correct++;
+    if(user === correctAns) correct++;
 
     if(selectedMatrix){
-        applyMatrix(testCanvas, testCtx);
-        alert("Imagen corregida. Observa si ahora ves mejor el número.");
+        applyMatrix(testCanvas,testCtx);
+        alert("Imagen corregida. Observa si ves mejor el número.");
         setTimeout(nextPlate,2000);
     } else {
         nextPlate();
@@ -285,9 +269,9 @@ function finishTest(){
     document.getElementById("answerBox").style.display="none";
     document.getElementById("testStartBtn").style.display="block";
 
-    let msg = `Aciertos: ${correct} de ${plates.length}. `;
-    if(correct === plates.length) msg+="No se observan indicios de daltonismo.";
-    else if(correct >= plates.length/2) msg+="Posible deficiencia leve.";
+    let msg=`Aciertos: ${correct} de ${plates.length}. `;
+    if(correct===plates.length) msg+="No se observan indicios de daltonismo.";
+    else if(correct>=plates.length/2) msg+="Posible deficiencia leve.";
     else msg+="Alto indicio de daltonismo.";
 
     document.getElementById("testResult").textContent=msg;
@@ -297,5 +281,6 @@ function finishTest(){
 
 </body>
 </html>
+
 
 
