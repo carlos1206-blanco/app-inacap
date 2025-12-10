@@ -317,12 +317,11 @@ function filterData(data, m){
     }
 }
 
-// ---------------- LÓGICA DEL TEST (DIBUJO DE PLACAS) ------------------
+// ---------------- LÓGICA DEL TEST (DIBUJO DE PLACAS CORREGIDO) ------------------
 
 /**
- * Dibuja una placa Ishihara simplificada en el canvas usando HSL para simular el daltonismo R/V.
- * La clave es usar colores de fondo (Verde/Amarillo) y colores de número (Rojo/Naranja)
- * que son difíciles de distinguir sin visión normal.
+ * Dibuja una placa Ishihara simplificada en el canvas usando HSL.
+ * Se ha mejorado el contraste de Luminosidad entre el número y el fondo para garantizar la visibilidad.
  */
 function drawIshiharaPlate(ctx, targetNumber, W, H) {
     // 1. Limpiar el canvas
@@ -333,13 +332,16 @@ function drawIshiharaPlate(ctx, targetNumber, W, H) {
     const centerY = H / 2;
     const numCircles = 1000;
     
-    // Rango de Tonalidades (Hue) para la simulación de Deuteranopia/Protanopia:
-    // Fondo: Tonalidades Verdes/Amarillo-Verde (90° a 150°)
-    const BG_HUE_RANGE = [90, 150]; 
-    // Número: Tonalidades Rojas/Naranja-Rojo (330° a 30° - cruza el 0°)
-    const NUM_HUE_RANGE = [330, 30]; 
+    // Rango de Tonalidades (Hue) para la simulación R/V:
+    const BG_HUE_RANGE = [90, 150]; // Verdes/Amarillo-Verde
+    const NUM_HUE_RANGE = [330, 30]; // Rojos/Naranja-Rojo
     
-    // Usar un buffer temporal para dibujar el número primero
+    // Configuración de contraste de Luminosidad CORREGIDA
+    const BG_LIGHTNESS_RANGE = [40, 50]; // Fondo Ligeramente más Oscuro
+    const NUM_LIGHTNESS_RANGE = [60, 70]; // Número Ligeramente más Claro
+
+    
+    // Usar un buffer temporal para dibujar el número primero (Stencil)
     let bufferCanvas = document.createElement('canvas');
     bufferCanvas.width = W;
     bufferCanvas.height = H;
@@ -348,7 +350,7 @@ function drawIshiharaPlate(ctx, targetNumber, W, H) {
     bufferCtx.font = `bold ${W / 3.5}px Arial`;
     bufferCtx.textAlign = 'center';
     bufferCtx.textBaseline = 'middle';
-    bufferCtx.fillStyle = "#000"; // Dibujamos el "stencil" del número en negro
+    bufferCtx.fillStyle = "#000"; 
     bufferCtx.fillText(targetNumber.toString(), centerX, centerY);
 
 
@@ -358,25 +360,26 @@ function drawIshiharaPlate(ctx, targetNumber, W, H) {
         let y = Math.random() * H; 
         let r = Math.random() * 7 + 2; // Radio de 2 a 9
 
-        // Comprobar si este punto (x, y) cae sobre el área del número dibujada en el buffer
         let pixelData = bufferCtx.getImageData(x, y, 1, 1).data;
-        // El color negro (RGB 0,0,0) indica que es parte del número
         let isNumberArea = (pixelData[0] === 0 && pixelData[1] === 0 && pixelData[2] === 0);
         
         let hue;
-        // Asignar color: 80% de probabilidad de ser color de número en el área del número, 
-        // y 100% color de fondo fuera de ella.
+        let light;
+        const sat = Math.floor(Math.random() * 30 + 60); // Saturación media (60-90)
+
+        // Asignar color y luminosidad según el área (Número o Fondo)
         if (isNumberArea && Math.random() < 0.8) { 
-            // Colores del número (Rojo)
+            // Color del número (Rojo)
             hue = Math.floor(Math.random() * (NUM_HUE_RANGE[1] + 360 - NUM_HUE_RANGE[0])) % 360;
+            // Luminosidad del número (Más claro)
+            light = Math.floor(Math.random() * (NUM_LIGHTNESS_RANGE[1] - NUM_LIGHTNESS_RANGE[0]) + NUM_LIGHTNESS_RANGE[0]);
         } else {
-            // Colores de fondo (Verde)
+            // Color de fondo (Verde)
             hue = Math.floor(Math.random() * (BG_HUE_RANGE[1] - BG_HUE_RANGE[0]) + BG_HUE_RANGE[0]);
+            // Luminosidad del fondo (Más oscuro)
+            light = Math.floor(Math.random() * (BG_LIGHTNESS_RANGE[1] - BG_LIGHTNESS_RANGE[0]) + BG_LIGHTNESS_RANGE[0]);
         }
         
-        const sat = Math.floor(Math.random() * 30 + 60); // Saturación media (60-90)
-        const light = Math.floor(Math.random() * 20 + 40); // Luminosidad media (40-60)
-
         ctx.fillStyle = `hsl(${hue}, ${sat}%, ${light}%)`;
         
         ctx.beginPath();
@@ -416,7 +419,7 @@ function nextTestStep(){
     // Mostrar el paso actual
     const currentStepDiv = document.getElementById(`step${testStep}`);
     currentStepDiv.style.display = 'block';
-    document.getElementById(`ans${testStep}`).value = ''; // Limpiar campo de respuesta
+    document.getElementById(`ans${testStep}`).value = ''; 
 
     // Mostrar el canvas y dibujar la placa SIN filtro
     document.getElementById("testCanvas").style.display = "block";
@@ -424,7 +427,6 @@ function nextTestStep(){
     testCanvas.height = 200;
     
     const numberToDraw = testNumbers[testStep - 1];
-    // Dibuja la placa de Ishihara generada localmente
     drawIshiharaPlate(testCtx, numberToDraw, testCanvas.width, testCanvas.height);
 }
 
@@ -436,7 +438,6 @@ function checkAnswer(step, correctAnswer){
         return;
     }
     
-    // 1. Verificar la respuesta de la persona sin ayuda (Diagnóstico)
     let isCorrectWithoutAid = (userAnswer === correctAnswer);
     
     if (isCorrectWithoutAid) {
@@ -480,7 +481,7 @@ function finishTest(){
     
     document.getElementById("testResult").textContent = resultText;
     
-    testStep = 0; // Resetear para poder re-iniciar
+    testStep = 0; 
 }
 </script>
 
