@@ -40,11 +40,9 @@
         max-width: 450px;
         border-radius: 10px;
         box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-        display: none; /* Oculto por defecto */
+        display: none; 
         text-align: left;
     }
-
-    .test-step.active { display: block; }
 
     .test-step h3 { color: #005bbb; margin-top: 0; }
     .test-step input[type="number"] {
@@ -137,20 +135,10 @@ let cameraStream = null;
 let cameraRunning = false;
 let animationId = null;
 
-// --- VARIABLES DEL TEST ---
-// Placas de Ishihara representadas en Base64 para evitar problemas de CORS/URL.
-// Estos son datos de imágenes PNG de 200x200 con círculos de colores.
-const plateUrls = [
-    // Placa 1: Número 12 (Diseñada para ser difícil para la deficiencia Rojo/Verde)
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADIAQMAAACcKzIuAAAAAXNSR0IB2cksfwAAAANQTFRF////AACOKx+8AAAAJ0lEQVR4nO3BMQEAAADCoPVPbQ0xAAAAAAAAAAAAAAAAAACAvw3oGAAB2vE3dAAAAABJRU5ErkJggg==',
-    // Placa 2: Número 8 (Diseñada para ser difícil para la deficiencia Rojo/Verde)
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADIAQMAAACcKzIuAAAAAXNSR0IB2cksfwAAAANQTFRF////AACOKx+8AAAAJ0lEQVR4nO3BMQEAAADCoPVPbQ0xAAAAAAAAAAAAAAAAAACAvw3oGAAB2vE3dAAAAABJRU5ErkJggg==',
-    // Placa 3: Número 29 (Diseñada para ser difícil para la deficiencia Rojo/Verde)
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADIAQMAAACcKzIuAAAAAXNSR0IB2cksfwAAAANQTFRF////AACOKx+8AAAAJ0lEQVR4nO3BMQEAAADCoPVPbQ0xAAAAAAAAAAAAAAAAAACAvw3oGAAB2vE3dAAAAABJRU5ErkJggg=='
-];
+// --- VARIABLES DEL TEST (LISTA DE NÚMEROS A DIBUJAR) ---
+const testNumbers = [12, 8, 29]; 
 let testStep = 0;
 let testCorrect = 0;
-let testImages = []; 
 const testCanvas = document.getElementById("testCanvas");
 const testCtx = testCanvas.getContext("2d");
 
@@ -329,32 +317,74 @@ function filterData(data, m){
     }
 }
 
-// ---------------- LÓGICA DEL TEST ------------------
+// ---------------- LÓGICA DEL TEST (DIBUJO DE PLACAS) ------------------
 
-function loadTestImages(callback) {
-    let loadedCount = 0;
-    testImages = [];
+/**
+ * Dibuja una placa Ishihara simplificada en el canvas usando HSL para simular el daltonismo R/V.
+ * La clave es usar colores de fondo (Verde/Amarillo) y colores de número (Rojo/Naranja)
+ * que son difíciles de distinguir sin visión normal.
+ */
+function drawIshiharaPlate(ctx, targetNumber, W, H) {
+    // 1. Limpiar el canvas
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, W, H);
     
-    // Configurar el canvas del test
-    testCanvas.width = 200;
-    testCanvas.height = 200;
+    const centerX = W / 2;
+    const centerY = H / 2;
+    const numCircles = 1000;
+    
+    // Rango de Tonalidades (Hue) para la simulación de Deuteranopia/Protanopia:
+    // Fondo: Tonalidades Verdes/Amarillo-Verde (90° a 150°)
+    const BG_HUE_RANGE = [90, 150]; 
+    // Número: Tonalidades Rojas/Naranja-Rojo (330° a 30° - cruza el 0°)
+    const NUM_HUE_RANGE = [330, 30]; 
+    
+    // Usar un buffer temporal para dibujar el número primero
+    let bufferCanvas = document.createElement('canvas');
+    bufferCanvas.width = W;
+    bufferCanvas.height = H;
+    let bufferCtx = bufferCanvas.getContext('2d');
+    
+    bufferCtx.font = `bold ${W / 3.5}px Arial`;
+    bufferCtx.textAlign = 'center';
+    bufferCtx.textBaseline = 'middle';
+    bufferCtx.fillStyle = "#000"; // Dibujamos el "stencil" del número en negro
+    bufferCtx.fillText(targetNumber.toString(), centerX, centerY);
 
-    plateUrls.forEach((url, index) => {
-        let img = new Image();
-        // Ya no necesitamos img.crossOrigin = "anonymous"; porque Base64 es local
-        img.onload = () => {
-            loadedCount++;
-            if (loadedCount === plateUrls.length) {
-                callback();
-            }
-        };
-        img.onerror = () => {
-            alert(`Error al cargar la imagen ${index + 1}. No se pudo descodificar la imagen Base64.`);
-        };
-        img.src = url;
-        testImages.push(img);
-    });
+
+    // 2. Dibujar círculos
+    for (let i = 0; i < numCircles; i++) {
+        let x = Math.random() * W; 
+        let y = Math.random() * H; 
+        let r = Math.random() * 7 + 2; // Radio de 2 a 9
+
+        // Comprobar si este punto (x, y) cae sobre el área del número dibujada en el buffer
+        let pixelData = bufferCtx.getImageData(x, y, 1, 1).data;
+        // El color negro (RGB 0,0,0) indica que es parte del número
+        let isNumberArea = (pixelData[0] === 0 && pixelData[1] === 0 && pixelData[2] === 0);
+        
+        let hue;
+        // Asignar color: 80% de probabilidad de ser color de número en el área del número, 
+        // y 100% color de fondo fuera de ella.
+        if (isNumberArea && Math.random() < 0.8) { 
+            // Colores del número (Rojo)
+            hue = Math.floor(Math.random() * (NUM_HUE_RANGE[1] + 360 - NUM_HUE_RANGE[0])) % 360;
+        } else {
+            // Colores de fondo (Verde)
+            hue = Math.floor(Math.random() * (BG_HUE_RANGE[1] - BG_HUE_RANGE[0]) + BG_HUE_RANGE[0]);
+        }
+        
+        const sat = Math.floor(Math.random() * 30 + 60); // Saturación media (60-90)
+        const light = Math.floor(Math.random() * 20 + 40); // Luminosidad media (40-60)
+
+        ctx.fillStyle = `hsl(${hue}, ${sat}%, ${light}%)`;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+    }
 }
+
 
 function startTest(){
     if (cameraRunning) stopCamera();
@@ -368,10 +398,8 @@ function startTest(){
     testStep = 0;
     testCorrect = 0;
     
-    // Cargar las imágenes y luego iniciar el primer paso
-    loadTestImages(() => {
-        nextTestStep();
-    });
+    // Iniciar el primer paso
+    nextTestStep();
 }
 
 function nextTestStep(){
@@ -380,7 +408,7 @@ function nextTestStep(){
     // Ocultar todos los pasos
     document.querySelectorAll('.test-step').forEach(el => el.style.display = 'none');
 
-    if (testStep > plateUrls.length) {
+    if (testStep > testNumbers.length) {
         finishTest();
         return;
     }
@@ -390,10 +418,14 @@ function nextTestStep(){
     currentStepDiv.style.display = 'block';
     document.getElementById(`ans${testStep}`).value = ''; // Limpiar campo de respuesta
 
-    // Mostrar la imagen en el canvas SIN filtro
+    // Mostrar el canvas y dibujar la placa SIN filtro
     document.getElementById("testCanvas").style.display = "block";
-    testCtx.clearRect(0, 0, testCanvas.width, testCanvas.height);
-    testCtx.drawImage(testImages[testStep - 1], 0, 0, testCanvas.width, testCanvas.height);
+    testCanvas.width = 200;
+    testCanvas.height = 200;
+    
+    const numberToDraw = testNumbers[testStep - 1];
+    // Dibuja la placa de Ishihara generada localmente
+    drawIshiharaPlate(testCtx, numberToDraw, testCanvas.width, testCanvas.height);
 }
 
 function checkAnswer(step, correctAnswer){
@@ -411,10 +443,13 @@ function checkAnswer(step, correctAnswer){
         testCorrect++;
     }
 
-    // 2. Simular el efecto ColorAid (¡La característica clave!)
-    // Mostrar la misma imagen PERO con el filtro seleccionado aplicado.
+    // 2. Simular el efecto ColorAid 
     if(selectedMatrix){
-        testCtx.drawImage(testImages[step - 1], 0, 0, testCanvas.width, testCanvas.height);
+        // Redibujar la placa (limpia)
+        const numberToDraw = testNumbers[step - 1];
+        drawIshiharaPlate(testCtx, numberToDraw, testCanvas.width, testCanvas.height);
+        
+        // Aplicar el filtro a la placa recién dibujada
         let imgData = testCtx.getImageData(0, 0, testCanvas.width, testCanvas.height);
         filterData(imgData.data, selectedMatrix);
         testCtx.putImageData(imgData, 0, 0);
@@ -425,7 +460,7 @@ function checkAnswer(step, correctAnswer){
     }
 
     // 3. Pasar al siguiente paso después de un breve tiempo para que vea el resultado filtrado
-    setTimeout(nextTestStep, 3000); // Espera 3 segundos antes de pasar a la siguiente placa
+    setTimeout(nextTestStep, 3000); 
 }
 
 
@@ -433,11 +468,11 @@ function finishTest(){
     document.getElementById("testCanvas").style.display = "none";
     document.getElementById("testStartBtn").style.display = "block";
     
-    let resultText = `✅ Test Finalizado. Aciertos: ${testCorrect} de ${plateUrls.length}.\n`;
+    let resultText = `✅ Test Finalizado. Aciertos: ${testCorrect} de ${testNumbers.length}.\n`;
     
-    if (testCorrect === plateUrls.length) {
+    if (testCorrect === testNumbers.length) {
         resultText += "¡Excelente! No pareces tener problemas significativos de visión de color con estas placas.";
-    } else if (testCorrect >= plateUrls.length / 2) {
+    } else if (testCorrect >= testNumbers.length / 2) {
         resultText += "Podrías tener una deficiencia leve de visión de color. Consulta un especialista.";
     } else {
         resultText += "Es probable que tengas una deficiencia de visión de color (daltonismo). Consulta un especialista.";
@@ -451,4 +486,3 @@ function finishTest(){
 
 </body>
 </html>
-
