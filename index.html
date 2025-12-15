@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,13 +7,16 @@
 <title>ColorAid PRO</title>
 
 <style>
+/* ================== GENERAL ================== */
 body{
     margin:0;
     font-family:Arial, sans-serif;
     background:#f2f2f2;
     text-align:center;
-    padding-bottom:30px;
+    padding-bottom:40px;
 }
+
+/* ================== HEADER ================== */
 header{
     background:#005bbb;
     color:white;
@@ -20,20 +24,65 @@ header{
     font-size:22px;
     display:flex;
     align-items:center;
-    justify-content:flex-start;
     position:sticky;
     top:0;
-    z-index:50;
+    z-index:10000; /* 🔥 CLAVE */
 }
-header span{margin-right:15px;cursor:pointer;}
+header span{
+    margin-right:15px;
+    cursor:pointer;
+    font-size:26px;
+}
+
+/* ================== STATUS ================== */
+#statusIndicator{
+    background:#e9ecef;
+    padding:8px;
+    width:90%;
+    max-width:400px;
+    margin:10px auto;
+    border-radius:5px;
+    font-weight:bold;
+}
+
+/* ================== MENU ================== */
+#menu{
+    position:fixed;
+    left:0;
+    top:0;
+    width:75%;
+    max-width:260px;
+    height:100vh;
+    background:white;
+    box-shadow:2px 0 12px rgba(0,0,0,.35);
+    transform:translateX(-100%);
+    transition:transform .3s ease;
+    padding:20px;
+    z-index:9999; /* 🔥 CLAVE */
+    text-align:left;
+    overflow-y:auto;
+}
+#menu.open{ transform:translateX(0); }
+
+.mode-btn{
+    background:white;
+    border-left:6px solid #007bff;
+    border-radius:5px;
+    padding:12px;
+    margin:6px 0;
+    cursor:pointer;
+}
+
+/* ================== SECTIONS ================== */
 h2{
     color:#005bbb;
     border-bottom:2px solid #005bbb;
-    padding-bottom:5px;
     width:90%;
     max-width:400px;
-    margin:20px auto 15px;
+    margin:20px auto 10px;
+    padding-bottom:5px;
 }
+
 button{
     padding:12px;
     margin:8px;
@@ -46,38 +95,9 @@ button{
     color:white;
     cursor:pointer;
 }
-#statusIndicator{
-    background:#e9ecef;
-    padding:8px;
-    width:90%;
-    max-width:400px;
-    margin:10px auto;
-    border-radius:5px;
-    font-weight:bold;
-}
-#menu{
-    position:fixed;
-    left:0;top:0;
-    width:70%;max-width:250px;
-    height:100%;
-    background:white;
-    box-shadow:2px 0 10px rgba(0,0,0,.3);
-    transform:translateX(-100%);
-    transition:.3s;
-    padding:20px;
-    z-index:1000;
-    text-align:left;
-    overflow-y:auto;
-}
-#menu.open{transform:translateX(0);}
-.mode-btn{
-    background:white;
-    border-left:6px solid #007bff;
-    border-radius:5px;
-    padding:12px;
-    margin:5px 0;
-    cursor:pointer;
-}
+
+input{ padding:10px; }
+
 #imageContainer,#videoContainer{
     margin:10px auto;
     max-width:380px;
@@ -86,7 +106,12 @@ button{
     overflow:hidden;
     box-shadow:0 4px 8px rgba(0,0,0,.1);
 }
-canvas{width:100%;display:block;}
+
+canvas{
+    width:100%;
+    display:block;
+}
+
 #testArea{
     width:90%;
     max-width:380px;
@@ -95,7 +120,6 @@ canvas{width:100%;display:block;}
     border:1px dashed #ccc;
     border-radius:8px;
 }
-input{padding:10px;}
 </style>
 </head>
 
@@ -107,6 +131,7 @@ input{padding:10px;}
 
 <div id="statusIndicator">Filtro Activo: Ninguno</div>
 
+<!-- ================== MENU ================== -->
 <div id="menu">
     <h3>Filtros</h3>
     <div class="mode-btn" onclick="setFilter('deuteranopia')">Deuteranopia</div>
@@ -119,17 +144,20 @@ input{padding:10px;}
     <button onclick="toggleMenu()">Cerrar menú</button>
 </div>
 
-<h2>Subir imagen</h2>
+<!-- ================== IMAGE ================== -->
+<h2>Subir Imagen</h2>
 <input type="file" id="imageInput" accept="image/*">
 <div id="imageContainer">
     <canvas id="imageCanvas"></canvas>
 </div>
 
+<!-- ================== CAMERA ================== -->
 <h2>Cámara</h2>
 <div id="videoContainer">
     <canvas id="videoCanvas"></canvas>
 </div>
 
+<!-- ================== ISHIHARA ================== -->
 <h2>Test Ishihara (imagen real)</h2>
 <input type="file" id="ishiharaInput" accept="image/*">
 
@@ -142,25 +170,26 @@ input{padding:10px;}
 <div id="testResult"></div>
 
 <script>
-// ---------------- MENU ----------------
+/* ================== MENU ================== */
 function toggleMenu(){
     document.getElementById("menu").classList.toggle("open");
 }
 
-// ---------------- FILTROS ----------------
+/* ================== FILTERS ================== */
 let selectedMatrix=null;
 const matrices={
     deuteranopia:[[0.625,0.375,0],[0.7,0.3,0],[0,0.3,0.7]],
     protanopia:[[0.567,0.433,0],[0.558,0.442,0],[0,0.242,0.758]],
     tritanopia:[[0.95,0.05,0],[0,0.433,0.567],[0,0.475,0.525]]
 };
+
 function setFilter(type){
     selectedMatrix=type?matrices[type]:null;
     document.getElementById("statusIndicator").textContent =
-        "Filtro Activo: "+(type??"Ninguno");
+        "Filtro Activo: "+(type ?? "Ninguno");
 }
 
-// ---------------- MATRIZ ----------------
+/* ================== APPLY MATRIX ================== */
 function applyMatrix(canvas,ctx){
     if(!selectedMatrix) return;
     let img=ctx.getImageData(0,0,canvas.width,canvas.height);
@@ -174,11 +203,10 @@ function applyMatrix(canvas,ctx){
     ctx.putImageData(img,0,0);
 }
 
-// ---------------- IMAGEN ----------------
+/* ================== IMAGE ================== */
 const imgCanvas=document.getElementById("imageCanvas");
 const imgCtx=imgCanvas.getContext("2d");
 document.getElementById("imageInput").onchange=e=>{
-    const f=e.target.files[0];
     const r=new FileReader();
     r.onload=()=>{
         const img=new Image();
@@ -190,10 +218,10 @@ document.getElementById("imageInput").onchange=e=>{
         };
         img.src=r.result;
     };
-    r.readAsDataURL(f);
+    r.readAsDataURL(e.target.files[0]);
 };
 
-// ---------------- ISHIHARA REAL ----------------
+/* ================== ISHIHARA ================== */
 let sourceImg=new Image();
 document.getElementById("ishiharaInput").onchange=e=>{
     const r=new FileReader();
@@ -201,7 +229,6 @@ document.getElementById("ishiharaInput").onchange=e=>{
     r.readAsDataURL(e.target.files[0]);
 };
 
-// coordenadas AJUSTABLES según imagen collage
 const plates=[
     {x:0,y:0,s:200,correct:12},
     {x:200,y:0,s:200,correct:8},
@@ -234,10 +261,22 @@ function drawPlate(){
 function submitAnswer(){
     const val=parseInt(document.getElementById("testAnswer").value);
     const ok=plates[plateIndex].correct;
-    document.getElementById("testResult").textCo
+    document.getElementById("testResult").textContent =
+        val===ok?"✅ Correcto":"❌ Incorrecto (era "+ok+")";
+    plateIndex++;
+    if(plateIndex<plates.length){
+        setTimeout(drawPlate,1200);
+    }else{
+        setTimeout(()=>{
+            document.getElementById("testResult").textContent+=" — Test finalizado";
+            document.getElementById("testArea").style.display="none";
+        },1200);
+    }
+}
+</script>
 
-
-
+</body>
+</html>
 
 
 
