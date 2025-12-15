@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ColorAid PRO</title>
+<title>ColorAid PRO – Ishihara Real</title>
 
 <style>
 body{
@@ -28,41 +28,12 @@ header span{
     margin-right:15px;
     cursor:pointer;
 }
-h2{
-    color:#005bbb;
-    border-bottom:2px solid #005bbb;
-    padding-bottom:5px;
-    width:90%;
-    max-width:400px;
-    margin:20px auto 15px;
-}
-button{
-    padding:12px;
-    margin:8px;
-    width:90%;
-    max-width:300px;
-    border:none;
-    border-radius:10px;
-    font-size:16px;
-    background:#007bff;
-    color:white;
-    cursor:pointer;
-}
-#statusIndicator{
-    background:#e9ecef;
-    padding:8px;
-    width:90%;
-    max-width:400px;
-    margin:10px auto;
-    border-radius:5px;
-    font-weight:bold;
-}
 #menu{
     position:fixed;
     left:0;
     top:0;
     width:70%;
-    max-width:250px;
+    max-width:260px;
     height:100%;
     background:white;
     transform:translateX(-100%);
@@ -77,18 +48,37 @@ button{
     background:white;
     border-left:6px solid #007bff;
     padding:12px;
-    margin:5px 0;
+    margin:6px 0;
     cursor:pointer;
 }
-#imageContainer, #videoContainer{
-    margin:10px auto;
+button{
+    padding:12px;
+    margin:8px;
     width:90%;
-    max-width:380px;
+    max-width:300px;
+    border:none;
     border-radius:10px;
-    overflow:hidden;
-    box-shadow:0 4px 8px rgba(0,0,0,.1);
+    font-size:16px;
+    background:#007bff;
+    color:white;
+    cursor:pointer;
 }
-canvas{width:100%;}
+h2{
+    color:#005bbb;
+    border-bottom:2px solid #005bbb;
+    width:90%;
+    max-width:400px;
+    margin:20px auto 10px;
+}
+#status{
+    background:#e9ecef;
+    padding:8px;
+    width:90%;
+    max-width:400px;
+    margin:10px auto;
+    border-radius:5px;
+    font-weight:bold;
+}
 #testArea{
     width:90%;
     max-width:380px;
@@ -96,6 +86,15 @@ canvas{width:100%;}
     padding:15px;
     border:1px dashed #ccc;
     border-radius:8px;
+}
+canvas{
+    width:100%;
+    border-radius:8px;
+}
+input{
+    padding:10px;
+    width:120px;
+    margin-top:10px;
 }
 </style>
 </head>
@@ -106,47 +105,35 @@ canvas{width:100%;}
     <span onclick="toggleMenu()">☰</span> ColorAid PRO
 </header>
 
-<div id="statusIndicator">Filtro Activo: Ninguno</div>
+<div id="status">Filtro activo: Ninguno</div>
 
 <div id="menu">
     <h3>Filtros</h3>
     <div class="mode-btn" onclick="setFilter('deuteranopia')">Deuteranopia</div>
     <div class="mode-btn" onclick="setFilter('protanopia')">Protanopia</div>
     <div class="mode-btn" onclick="setFilter('tritanopia')">Tritanopia</div>
-    <div class="mode-btn" onclick="setFilter(null)">Desactivar</div>
+    <div class="mode-btn" onclick="setFilter(null)">Sin filtro</div>
     <hr>
-    <button onclick="startCamera()">Abrir Cámara</button>
-    <button onclick="stopCamera()">Cerrar Cámara</button>
-    <hr>
-    <button onclick="startTest()">Test Ishihara</button>
+    <button onclick="startTest()">Iniciar Test Ishihara</button>
     <button onclick="toggleMenu()">Cerrar</button>
 </div>
 
-<h2>Subir Imagen</h2>
-<input type="file" id="imageInput" accept="image/*">
-
-<div id="imageContainer">
-    <canvas id="imageCanvas"></canvas>
-</div>
-
-<h2>Cámara</h2>
-<div id="videoContainer">
-    <canvas id="videoCanvas"></canvas>
-</div>
+<h2>Cargar imagen Ishihara</h2>
+<input type="file" id="sourceInput" accept="image/*">
 
 <h2>Test Ishihara</h2>
 <div id="testArea" style="display:none;">
     <canvas id="testCanvas" width="300" height="300"></canvas><br>
-    <input id="testAnswer" type="number" placeholder="Número">
+    <input id="answer" type="number" placeholder="Número">
     <button onclick="submitAnswer()">Responder</button>
 </div>
 
-<div id="testResult"></div>
+<div id="result"></div>
 
 <script>
 // ---------------- MENU ----------------
 function toggleMenu(){
-    document.getElementById('menu').classList.toggle('open');
+    document.getElementById("menu").classList.toggle("open");
 }
 
 // ---------------- FILTROS ----------------
@@ -156,118 +143,88 @@ const matrices={
     protanopia:[[0.567,0.433,0],[0.558,0.442,0],[0,0.242,0.758]],
     tritanopia:[[0.95,0.05,0],[0,0.433,0.567],[0,0.475,0.525]]
 };
-function setFilter(t){
-    selectedMatrix=t?matrices[t]:null;
-    document.getElementById("statusIndicator").textContent=
-        "Filtro Activo: "+(t||"Ninguno");
+
+function setFilter(type){
+    selectedMatrix = type ? matrices[type] : null;
+    document.getElementById("status").textContent =
+        "Filtro activo: " + (type ?? "Ninguno");
 }
 
-// ---------------- APLICAR MATRIZ ----------------
+// ---------------- MATRIZ ----------------
 function applyMatrix(canvas,ctx){
-    if(!selectedMatrix)return;
-    let img=ctx.getImageData(0,0,canvas.width,canvas.height);
-    let d=img.data,m=selectedMatrix;
+    if(!selectedMatrix) return;
+    let img = ctx.getImageData(0,0,canvas.width,canvas.height);
+    let d = img.data;
+    let m = selectedMatrix;
     for(let i=0;i<d.length;i+=4){
-        let r=d[i],g=d[i+1],b=d[i+2];
-        d[i]=r*m[0][0]+g*m[0][1]+b*m[0][2];
-        d[i+1]=r*m[1][0]+g*m[1][1]+b*m[1][2];
-        d[i+2]=r*m[2][0]+g*m[2][1]+b*m[2][2];
+        let r=d[i], g=d[i+1], b=d[i+2];
+        d[i]   = r*m[0][0] + g*m[0][1] + b*m[0][2];
+        d[i+1] = r*m[1][0] + g*m[1][1] + b*m[1][2];
+        d[i+2] = r*m[2][0] + g*m[2][1] + b*m[2][2];
     }
     ctx.putImageData(img,0,0);
 }
 
-// ---------------- IMAGEN ----------------
-const imgCanvas=document.getElementById("imageCanvas");
-const imgCtx=imgCanvas.getContext("2d");
-document.getElementById("imageInput").onchange=e=>{
-    let f=e.target.files[0];
-    let r=new FileReader();
-    r.onload=()=>{
-        let img=new Image();
-        img.onload=()=>{
-            imgCanvas.width=img.width;
-            imgCanvas.height=img.height;
-            imgCtx.drawImage(img,0,0);
-            applyMatrix(imgCanvas,imgCtx);
-        };
-        img.src=r.result;
-    };
-    r.readAsDataURL(f);
+// ---------------- IMAGEN FUENTE ----------------
+let sourceImg = new Image();
+document.getElementById("sourceInput").onchange = e=>{
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = ev => sourceImg.src = ev.target.result;
+    reader.readAsDataURL(file);
 };
 
-// ---------------- CÁMARA ----------------
-let stream=null;
-const vCanvas=document.getElementById("videoCanvas");
-const vCtx=vCanvas.getContext("2d");
-
-async function startCamera(){
-    stream=await navigator.mediaDevices.getUserMedia({video:true});
-    const video=document.createElement("video");
-    video.srcObject=stream;
-    video.play();
-    video.onloadeddata=()=>{
-        vCanvas.width=video.videoWidth;
-        vCanvas.height=video.videoHeight;
-        function loop(){
-            if(!stream)return;
-            vCtx.drawImage(video,0,0);
-            applyMatrix(vCanvas,vCtx);
-            requestAnimationFrame(loop);
-        }
-        loop();
-    };
-}
-function stopCamera(){
-    if(stream)stream.getTracks().forEach(t=>t.stop());
-    stream=null;
-    vCtx.clearRect(0,0,vCanvas.width,vCanvas.height);
-}
-
-// ---------------- TEST ISHIHARA (EMBEBIDO) ----------------
-const ishiharaPlates=[
-    {id:1,correct:12},
-    {id:2,correct:8},
-    {id:3,correct:29}
+// ---------------- PLACAS (AJUSTABLES) ----------------
+// Coordenadas aproximadas para collage tipo 5x4
+const plates = [
+    {x:0,   y:0,   s:200, correct:12},
+    {x:200, y:0,   s:200, correct:8},
+    {x:400, y:0,   s:200, correct:29},
+    {x:600, y:0,   s:200, correct:5},
+    {x:0,   y:200, s:200, correct:3},
+    {x:200, y:200, s:200, correct:15}
 ];
 
-let plateIndex=0;
-const tCanvas=document.getElementById("testCanvas");
-const tCtx=tCanvas.getContext("2d");
-const result=document.getElementById("testResult");
+let index = 0;
+const canvas = document.getElementById("testCanvas");
+const ctx = canvas.getContext("2d");
+const result = document.getElementById("result");
 
-function drawPlate(number){
-    tCtx.clearRect(0,0,300,300);
-    for(let i=0;i<1200;i++){
-        tCtx.fillStyle=`hsl(${Math.random()*360},70%,60%)`;
-        tCtx.beginPath();
-        tCtx.arc(Math.random()*300,Math.random()*300,6,0,Math.PI*2);
-        tCtx.fill();
-    }
-    tCtx.fillStyle="black";
-    tCtx.font="bold 80px Arial";
-    tCtx.textAlign="center";
-    tCtx.textBaseline="middle";
-    tCtx.fillText(number,150,150);
-    applyMatrix(tCanvas,tCtx);
+// ---------------- DIBUJAR PLACA ----------------
+function drawPlate(){
+    const p = plates[index];
+    ctx.clearRect(0,0,300,300);
+    ctx.drawImage(
+        sourceImg,
+        p.x, p.y, p.s, p.s,
+        0, 0, 300, 300
+    );
+    applyMatrix(canvas,ctx);
 }
 
+// ---------------- TEST ----------------
 function startTest(){
-    plateIndex=0;
+    if(!sourceImg.src){
+        alert("Primero carga la imagen Ishihara.");
+        return;
+    }
+    index = 0;
     document.getElementById("testArea").style.display="block";
-    drawPlate(ishiharaPlates[plateIndex].correct);
+    drawPlate();
     toggleMenu();
 }
 
 function submitAnswer(){
-    let ans=parseInt(document.getElementById("testAnswer").value);
-    let correct=ishiharaPlates[plateIndex].correct;
-    result.textContent=(ans===correct?"✅ Correcto":"❌ Incorrecto")+" (Era "+correct+")";
-    plateIndex++;
-    if(plateIndex<ishiharaPlates.length){
-        setTimeout(()=>drawPlate(ishiharaPlates[plateIndex].correct),1200);
+    const val = parseInt(document.getElementById("answer").value);
+    const ok = plates[index].correct;
+    result.textContent =
+        val === ok ? "✅ Correcto" : "❌ Incorrecto (era " + ok + ")";
+    index++;
+    if(index < plates.length){
+        setTimeout(drawPlate,1200);
     }else{
         setTimeout(()=>{
-            result.textContent+=" — Test finalizado";
+            result.textContent += " — Test finalizado";
             document.getElementById("testArea").style.display="none";
         },1200);
     }
