@@ -79,7 +79,9 @@ main{
     padding:20px;
     text-align:center;
 }
-canvas{
+
+/* canvas principal */
+#canvas{
     display:none;
     width:100%;
     max-width:360px;
@@ -87,15 +89,25 @@ canvas{
     border-radius:10px;
     box-shadow:0 4px 8px rgba(0,0,0,.2);
 }
+
+/* TEST */
 #testArea{
     display:none;
     margin-top:20px;
 }
+#testCanvas{
+    display:block; /* 🔑 ESTE ERA EL PROBLEMA */
+    width:300px;
+    height:300px;
+    margin:10px auto;
+    border-radius:10px;
+    box-shadow:0 4px 8px rgba(0,0,0,.2);
+}
+
 input[type=file]{display:none;}
 input[type=number]{
     padding:8px;
-    width:120px;
-    margin-top:10px;
+    width:150px;
 }
 </style>
 </head>
@@ -138,7 +150,8 @@ input[type=number]{
     <!-- TEST -->
     <div id="testArea">
         <h3>Test visual</h3>
-        <canvas id="testCanvas" width="300" height="300"></canvas><br>
+        <canvas id="testCanvas" width="300" height="300"></canvas>
+        <br>
         <input id="answer" type="number" placeholder="Número que ves">
         <br><br>
         <button class="menu-btn" onclick="submitAnswer()">Responder</button>
@@ -172,7 +185,7 @@ const matrices={
 };
 let currentMatrix=null;
 
-// ================= CANVAS =================
+// ================= CANVAS PRINCIPAL =================
 const canvas=document.getElementById("canvas");
 const ctx=canvas.getContext("2d");
 let originalImage=null;
@@ -234,17 +247,6 @@ async function startCamera(){
             function loop(){
                 if(!stream)return;
                 ctx.drawImage(video,0,0);
-                if(currentMatrix){
-                    let img=ctx.getImageData(0,0,canvas.width,canvas.height);
-                    let d=img.data,m=currentMatrix;
-                    for(let i=0;i<d.length;i+=4){
-                        let r=d[i],g=d[i+1],b=d[i+2];
-                        d[i]=r*m[0][0]+g*m[0][1]+b*m[0][2];
-                        d[i+1]=r*m[1][0]+g*m[1][1]+b*m[1][2];
-                        d[i+2]=r*m[2][0]+g*m[2][1]+b*m[2][2];
-                    }
-                    ctx.putImageData(img,0,0);
-                }
                 requestAnimationFrame(loop);
             }
             loop();
@@ -261,35 +263,27 @@ function stopCamera(){
     }
 }
 
-// ================= TEST VISUAL (ISHIHARA SIMULADO) =================
+// ================= TEST VISUAL =================
 const numbers=[12,8,29,5];
 let idx=0;
 const testCanvas=document.getElementById("testCanvas");
 const tCtx=testCanvas.getContext("2d");
 
-function drawIshihara(number){
+function drawIshihara(num){
     tCtx.clearRect(0,0,300,300);
 
-    // Puntos
     for(let i=0;i<1500;i++){
         tCtx.fillStyle=`hsl(${Math.random()*360},70%,60%)`;
         tCtx.beginPath();
-        tCtx.arc(
-            Math.random()*300,
-            Math.random()*300,
-            Math.random()*5+3,
-            0,
-            Math.PI*2
-        );
+        tCtx.arc(Math.random()*300,Math.random()*300,Math.random()*5+3,0,Math.PI*2);
         tCtx.fill();
     }
 
-    // Número camuflado
     tCtx.fillStyle="rgba(0,0,0,0.35)";
     tCtx.font="bold 90px Arial";
     tCtx.textAlign="center";
     tCtx.textBaseline="middle";
-    tCtx.fillText(number,150,150);
+    tCtx.fillText(num,150,150);
 }
 
 function startTest(){
