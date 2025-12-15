@@ -80,7 +80,7 @@ main{
     text-align:center;
 }
 canvas{
-    display:none; /* 🔑 NO se muestra al inicio */
+    display:none;
     width:100%;
     max-width:360px;
     margin:15px auto;
@@ -91,8 +91,11 @@ canvas{
     display:none;
     margin-top:20px;
 }
-input[type=file]{
-    display:none;
+input[type=file]{display:none;}
+input[type=number]{
+    padding:8px;
+    width:120px;
+    margin-top:10px;
 }
 </style>
 </head>
@@ -258,31 +261,41 @@ function stopCamera(){
     }
 }
 
-// ================= TEST VISUAL =================
+// ================= TEST VISUAL (ISHIHARA SIMULADO) =================
 const numbers=[12,8,29,5];
 let idx=0;
 const testCanvas=document.getElementById("testCanvas");
 const tCtx=testCanvas.getContext("2d");
 
-function drawPlate(num){
+function drawIshihara(number){
     tCtx.clearRect(0,0,300,300);
-    for(let i=0;i<1200;i++){
+
+    // Puntos
+    for(let i=0;i<1500;i++){
         tCtx.fillStyle=`hsl(${Math.random()*360},70%,60%)`;
         tCtx.beginPath();
-        tCtx.arc(Math.random()*300,Math.random()*300,6,0,Math.PI*2);
+        tCtx.arc(
+            Math.random()*300,
+            Math.random()*300,
+            Math.random()*5+3,
+            0,
+            Math.PI*2
+        );
         tCtx.fill();
     }
-    tCtx.fillStyle="black";
-    tCtx.font="bold 80px Arial";
+
+    // Número camuflado
+    tCtx.fillStyle="rgba(0,0,0,0.35)";
+    tCtx.font="bold 90px Arial";
     tCtx.textAlign="center";
     tCtx.textBaseline="middle";
-    tCtx.fillText(num,150,150);
+    tCtx.fillText(number,150,150);
 }
 
 function startTest(){
     idx=0;
     document.getElementById("testArea").style.display="block";
-    drawPlate(numbers[idx]);
+    drawIshihara(numbers[idx]);
     closeMenu();
 }
 function submitAnswer(){
@@ -292,7 +305,7 @@ function submitAnswer(){
         val===ok?"✅ Correcto":"❌ Incorrecto (era "+ok+")";
     idx++;
     if(idx<numbers.length){
-        setTimeout(()=>drawPlate(numbers[idx]),1200);
+        setTimeout(()=>drawIshihara(numbers[idx]),1200);
     }else{
         setTimeout(()=>{
             document.getElementById("result").textContent+=" — Test finalizado";
@@ -306,3 +319,4 @@ function closeTest(){
 
 </body>
 </html>
+
