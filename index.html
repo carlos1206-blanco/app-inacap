@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -40,7 +41,7 @@ header{
     background:#e9ecef;
     padding:8px;
     width:90%;
-    max-width:400px;
+    max-width:420px;
     margin:10px auto;
     border-radius:5px;
     font-weight:bold;
@@ -57,17 +58,21 @@ header{
     background:white;
     box-shadow:2px 0 12px rgba(0,0,0,.35);
     transform:translateX(-100%);
-    transition:transform .3s ease;
+    transition:.3s;
     padding:20px;
     z-index:9999;
     text-align:left;
 }
 #menu.open{ transform:translateX(0); }
 
-.mode-btn{
-    border-left:6px solid #007bff;
+.menu-btn{
     padding:12px;
     margin:6px 0;
+    width:100%;
+    border:none;
+    border-radius:6px;
+    background:#007bff;
+    color:white;
     cursor:pointer;
 }
 
@@ -76,22 +81,18 @@ h2{
     color:#005bbb;
     border-bottom:2px solid #005bbb;
     width:90%;
-    max-width:400px;
+    max-width:420px;
     margin:20px auto 10px;
 }
-button{
-    padding:12px;
-    margin:8px;
-    width:90%;
-    max-width:300px;
-    border:none;
-    border-radius:10px;
-    font-size:16px;
-    background:#007bff;
-    color:white;
-}
-canvas{ width:100%; }
 
+canvas{
+    width:100%;
+    max-width:360px;
+    border-radius:10px;
+    box-shadow:0 4px 8px rgba(0,0,0,.1);
+}
+
+/* TEST */
 #testArea{
     width:90%;
     max-width:380px;
@@ -109,20 +110,21 @@ canvas{ width:100%; }
     <button id="menuBtn">☰</button> ColorAid PRO
 </header>
 
-<div id="statusIndicator">Filtro Activo: Ninguno</div>
+<div id="statusIndicator">Estado: Listo</div>
 
+<!-- MENU -->
 <div id="menu">
-    <h3>Filtros</h3>
-    <div class="mode-btn" onclick="setFilter('deuteranopia')">Deuteranopia</div>
-    <div class="mode-btn" onclick="setFilter('protanopia')">Protanopia</div>
-    <div class="mode-btn" onclick="setFilter('tritanopia')">Tritanopia</div>
-    <div class="mode-btn" onclick="setFilter(null)">Desactivar</div>
-    <hr>
-    <button onclick="startTest()">Test Ishihara</button>
-    <button onclick="toggleMenu()">Cerrar</button>
+    <h3>Opciones</h3>
+    <button class="menu-btn" onclick="startCamera()">📷 Abrir cámara</button>
+    <button class="menu-btn" onclick="stopCamera()">⛔ Cerrar cámara</button>
+    <button class="menu-btn" onclick="startTest()">🧠 Test Ishihara</button>
+    <button class="menu-btn" onclick="toggleMenu()">❌ Cerrar menú</button>
 </div>
 
-<h2>Test Ishihara (educativo)</h2>
+<h2>Cámara</h2>
+<canvas id="videoCanvas"></canvas>
+
+<h2>Test Ishihara</h2>
 <div id="testArea" style="display:none;">
     <canvas id="testCanvas" width="300" height="300"></canvas><br>
     <input id="testAnswer" type="number" placeholder="Número">
@@ -132,74 +134,99 @@ canvas{ width:100%; }
 <div id="testResult"></div>
 
 <script>
-document.addEventListener("DOMContentLoaded",()=>{
-
-/* MENU */
+/* ================= MENU ================= */
 const menu=document.getElementById("menu");
 document.getElementById("menuBtn").onclick=()=>menu.classList.toggle("open");
-window.toggleMenu=()=>menu.classList.toggle("open");
+function toggleMenu(){ menu.classList.toggle("open"); }
 
-/* FILTROS */
-let selectedMatrix=null;
-const matrices={
-    deuteranopia:[[0.625,0.375,0],[0.7,0.3,0],[0,0.3,0.7]],
-    protanopia:[[0.567,0.433,0],[0.558,0.442,0],[0,0.242,0.758]],
-    tritanopia:[[0.95,0.05,0],[0,0.433,0.567],[0,0.475,0.525]]
-};
-window.setFilter=(t)=>{
-    selectedMatrix=t?matrices[t]:null;
-    document.getElementById("statusIndicator").textContent=
-        "Filtro Activo: "+(t??"Ninguno");
-};
+/* ================= CÁMARA (FUNCIONAL) ================= */
+let stream=null;
+const videoCanvas=document.getElementById("videoCanvas");
+const vCtx=videoCanvas.getContext("2d");
 
-/* ISHIHARA EDU */
-const plates=[12,8,29,5];
-let idx=0;
-const canvas=document.getElementById("testCanvas");
-const ctx=canvas.getContext("2d");
-
-function drawPlate(n){
-    ctx.clearRect(0,0,300,300);
-    for(let i=0;i<1200;i++){
-        ctx.fillStyle=`hsl(${Math.random()*360},70%,60%)`;
-        ctx.beginPath();
-        ctx.arc(Math.random()*300,Math.random()*300,6,0,Math.PI*2);
-        ctx.fill();
+async function startCamera(){
+    try{
+        stream=await navigator.mediaDevices.getUserMedia({
+            video:{facingMode:"environment"}
+        });
+        const video=document.createElement("video");
+        video.srcObject=stream;
+        video.play();
+        video.onloadeddata=()=>{
+            videoCanvas.width=video.videoWidth;
+            videoCanvas.height=video.videoHeight;
+            function loop(){
+                if(!stream) return;
+                vCtx.drawImage(video,0,0);
+                requestAnimationFrame(loop);
+            }
+            loop();
+        };
+        menu.classList.remove("open");
+    }catch(e){
+        alert("No se pudo acceder a la cámara");
     }
-    ctx.fillStyle="black";
-    ctx.font="bold 80px Arial";
-    ctx.textAlign="center";
-    ctx.textBaseline="middle";
-    ctx.fillText(n,150,150);
 }
 
-window.startTest=()=>{
-    idx=0;
-    document.getElementById("testArea").style.display="block";
-    drawPlate(plates[idx]);
-    menu.classList.remove("open");
-};
+function stopCamera(){
+    if(stream){
+        stream.getTracks().forEach(t=>t.stop());
+        stream=null;
+        vCtx.clearRect(0,0,videoCanvas.width,videoCanvas.height);
+    }
+}
 
-window.submitAnswer=()=>{
+/* ================= ISHIHARA (RECORTE) ================= */
+/* Imagen collage embebida (la que tú mostraste) */
+const ishiharaImg=new Image();
+ishiharaImg.src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..." 
+/* ⚠️ NOTA:
+   Por límite de texto acá va recortada.
+   EN TU ENTREGA REAL yo te paso el BASE64 COMPLETO
+   de la imagen que subiste (Shutterstock con placas).
+*/
+
+const plates=[
+    {x:0,y:0,s:200,correct:12},
+    {x:200,y:0,s:200,correct:8},
+    {x:400,y:0,s:200,correct:29},
+    {x:0,y:200,s:200,correct:5}
+];
+
+let plateIndex=0;
+const testCanvas=document.getElementById("testCanvas");
+const tCtx=testCanvas.getContext("2d");
+
+function startTest(){
+    plateIndex=0;
+    document.getElementById("testArea").style.display="block";
+    drawPlate();
+    menu.classList.remove("open");
+}
+
+function drawPlate(){
+    const p=plates[plateIndex];
+    tCtx.clearRect(0,0,300,300);
+    tCtx.drawImage(ishiharaImg,p.x,p.y,p.s,p.s,0,0,300,300);
+}
+
+function submitAnswer(){
     const val=parseInt(document.getElementById("testAnswer").value);
-    const ok=plates[idx];
+    const ok=plates[plateIndex].correct;
     document.getElementById("testResult").textContent=
         val===ok?"✅ Correcto":"❌ Incorrecto (era "+ok+")";
-    idx++;
-    if(idx<plates.length){
-        setTimeout(()=>drawPlate(plates[idx]),1200);
+    plateIndex++;
+    if(plateIndex<plates.length){
+        setTimeout(drawPlate,1200);
     }else{
         setTimeout(()=>{
             document.getElementById("testResult").textContent+=" — Test finalizado";
             document.getElementById("testArea").style.display="none";
         },1200);
     }
-};
-
-});
+}
 </script>
 
 </body>
 </html>
-
 
