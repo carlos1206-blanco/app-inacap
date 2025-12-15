@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ColorAid PRO – Cromático</title>
+<title>ColorAid PRO</title>
 
 <style>
 *{box-sizing:border-box;}
@@ -45,6 +45,7 @@ main{text-align:center;padding:20px}
     box-shadow:0 4px 8px rgba(0,0,0,.2)
 }
 
+input[type=file]{display:none}
 input[type=number]{padding:8px;width:150px}
 </style>
 </head>
@@ -61,8 +62,11 @@ input[type=number]{padding:8px;width:150px}
 <div id="menu">
     <button class="menu-btn close" onclick="closeMenu()">❌ Cerrar</button>
 
+    <div class="menu-title">Imagen</div>
+    <button class="menu-btn" onclick="imageInput.click()">📁 Subir imagen</button>
+
     <div class="menu-title">Filtros</div>
-    <button class="menu-btn" onclick="setFilter(null)">Visión normal</button>
+    <button class="menu-btn" onclick="setFilter(null)">Sin filtro</button>
     <button class="menu-btn" onclick="setFilter('deuteranopia')">Deuteranopia</button>
     <button class="menu-btn" onclick="setFilter('protanopia')">Protanopia</button>
     <button class="menu-btn" onclick="setFilter('tritanopia')">Tritanopia</button>
@@ -76,6 +80,7 @@ input[type=number]{padding:8px;width:150px}
 </div>
 
 <main>
+    <input type="file" id="imageInput" accept="image/*">
     <canvas id="canvas"></canvas>
 
     <div id="testArea">
@@ -96,14 +101,50 @@ overlay.onclick=closeMenu
 function closeMenu(){menu.classList.remove("open");overlay.style.display="none"}
 
 // ===== FILTROS =====
-let visionMode=null
-function setFilter(t){visionMode=t;closeMenu()}
+let filter=null
+function setFilter(f){filter=f;applyFilter();closeMenu()}
 
-// ===== CÁMARA =====
+// ===== CANVAS PRINCIPAL =====
 const canvas=document.getElementById("canvas")
 const ctx=canvas.getContext("2d")
-let stream=null
+let originalImage=null
 
+// ===== SUBIR IMAGEN =====
+imageInput.onchange=e=>{
+    const reader=new FileReader()
+    reader.onload=()=>{
+        const img=new Image()
+        img.onload=()=>{
+            canvas.style.display="block"
+            canvas.width=img.width
+            canvas.height=img.height
+            ctx.drawImage(img,0,0)
+            originalImage=ctx.getImageData(0,0,canvas.width,canvas.height)
+            applyFilter()
+        }
+        img.src=reader.result
+    }
+    reader.readAsDataURL(e.target.files[0])
+    closeMenu()
+}
+
+// ===== APLICAR FILTROS A IMAGEN / CÁMARA =====
+function applyFilter(){
+    if(!originalImage)return
+    ctx.putImageData(originalImage,0,0)
+    if(!filter)return
+    let img=ctx.getImageData(0,0,canvas.width,canvas.height)
+    let d=img.data
+    for(let i=0;i<d.length;i+=4){
+        if(filter==="deuteranopia") d[i+1]*=0.6
+        if(filter==="protanopia") d[i]*=0.6
+        if(filter==="tritanopia") d[i+2]*=0.6
+    }
+    ctx.putImageData(img,0,0)
+}
+
+// ===== CÁMARA =====
+let stream=null
 async function startCamera(){
     try{
         stream=await navigator.mediaDevices.getUserMedia({video:true})
@@ -117,7 +158,8 @@ async function startCamera(){
             function loop(){
                 if(!stream)return
                 ctx.drawImage(video,0,0)
-                applyVisionFilter()
+                originalImage=ctx.getImageData(0,0,canvas.width,canvas.height)
+                applyFilter()
                 requestAnimationFrame(loop)
             }
             loop()
@@ -125,34 +167,22 @@ async function startCamera(){
         closeMenu()
     }catch{alert("No se pudo acceder a la cámara")}
 }
-
 function stopCamera(){
     if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
 }
 
-function applyVisionFilter(){
-    if(!visionMode)return
-    let img=ctx.getImageData(0,0,canvas.width,canvas.height)
-    let d=img.data
-    for(let i=0;i<d.length;i+=4){
-        if(visionMode==="deuteranopia") d[i+1]*=0.6
-        if(visionMode==="protanopia") d[i]*=0.6
-        if(visionMode==="tritanopia") d[i+2]*=0.6
-    }
-    ctx.putImageData(img,0,0)
-}
-
-// ===== TEST CROMÁTICO =====
+// ===== TEST CROMÁTICO (INDEPENDIENTE) =====
 const plates=[
  {number:12,fg:[220,60,60],bg:[80,170,80]},
- {number:8, fg:[60,180,60],bg:[200,90,90]}
+ {number:8, fg:[60,180,60],bg:[200,90,90]},
+ {number:29,fg:[60,90,200],bg:[200,200,80]}
 ]
 let idx=0
 const tCtx=testCanvas.getContext("2d")
 
 function drawPlate(p){
     tCtx.clearRect(0,0,300,300)
-    for(let i=0;i<1500;i++){
+    for(let i=0;i<1600;i++){
         let c=Math.random()<0.35?p.fg:p.bg
         tCtx.fillStyle=`rgb(${c[0]},${c[1]},${c[2]})`
         tCtx.beginPath()
@@ -169,21 +199,29 @@ function drawPlate(p){
 
 function startTest(){
     idx=0
+    answer.value=""
+    result.textContent=""
     testArea.style.display="block"
     drawPlate(plates[idx])
     closeMenu()
 }
 function submitAnswer(){
     const ok=plates[idx].number
-    result.textContent=answer.value==ok?"✅ Correcto":"❌ Incorrecto"
+    result.textContent=answer.value==ok?"✅ Correcto":"❌ Incorrecto (era "+ok+")"
     idx++
-    if(idx<plates.length)setTimeout(()=>drawPlate(plates[idx]),1200)
+    answer.value=""
+    if(idx<plates.length){
+        setTimeout(()=>drawPlate(plates[idx]),1200)
+    }else{
+        setTimeout(()=>result.textContent+=" — Test finalizado",1200)
+    }
 }
 function closeTest(){testArea.style.display="none"}
 </script>
 
 </body>
 </html>
+
 
 
 
