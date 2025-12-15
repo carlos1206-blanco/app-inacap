@@ -17,6 +17,35 @@ header{
     color:white;margin-right:15px;cursor:pointer
 }
 
+/* PORTADA */
+#hero{
+    min-height:calc(100vh - 60px);
+    background:
+        linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)),
+        url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee");
+    background-size:cover;
+    background-position:center;
+    color:white;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:30px;
+}
+#hero h1{font-size:32px;margin-bottom:10px}
+#hero p{max-width:500px;font-size:16px;opacity:.9}
+#hero button{
+    margin-top:20px;
+    padding:14px 30px;
+    font-size:18px;
+    border:none;
+    border-radius:30px;
+    background:#28a745;
+    color:white;
+    cursor:pointer;
+}
+
 /* overlay + menu */
 #overlay{
     display:none;position:fixed;inset:0;
@@ -66,13 +95,23 @@ input[type=number]{padding:8px;width:150px}
     ColorAid PRO
 </header>
 
+<!-- PORTADA -->
+<section id="hero">
+    <h1>ColorAid PRO</h1>
+    <p>
+        Herramienta de simulación cromática y test de percepción del color.
+        Uso educativo y demostrativo.
+    </p>
+    <button onclick="hideHero()">Comenzar</button>
+</section>
+
 <div id="overlay"></div>
 
 <div id="menu">
     <button class="menu-btn close" onclick="closeMenu()">❌ Cerrar</button>
 
     <div class="menu-title">Imagen</div>
-    <button class="menu-btn" onclick="imageInput.click()">📁 Subir imagen</button>
+    <button class="menu-btn" onclick="imageInput.click();hideHero()">📁 Subir imagen</button>
 
     <div class="menu-title">Filtros</div>
     <button class="menu-btn" onclick="setFilter(null)">Visión normal</button>
@@ -81,11 +120,11 @@ input[type=number]{padding:8px;width:150px}
     <button class="menu-btn" onclick="setFilter('tritanopia')">Tritanopia</button>
 
     <div class="menu-title">Cámara</div>
-    <button class="menu-btn" onclick="startCamera()">📷 Abrir cámara</button>
+    <button class="menu-btn" onclick="startCamera();hideHero()">📷 Abrir cámara</button>
     <button class="menu-btn close" onclick="stopCamera()">⛔ Cerrar cámara</button>
 
     <div class="menu-title">Test</div>
-    <button class="menu-btn" onclick="startTest()">🧠 Test cromático</button>
+    <button class="menu-btn" onclick="startTest();hideHero()">🧠 Test cromático</button>
 </div>
 
 <main>
@@ -104,118 +143,93 @@ input[type=number]{padding:8px;width:150px}
 </main>
 
 <script>
-// ================= MENÚ =================
+// ===== PORTADA =====
+function hideHero(){
+    document.getElementById("hero").style.display="none";
+}
+
+// ===== MENÚ =====
 menuBtn.onclick=()=>{menu.classList.add("open");overlay.style.display="block"}
 overlay.onclick=closeMenu
 function closeMenu(){menu.classList.remove("open");overlay.style.display="none"}
 
-// ================= FILTROS REALES (MATRICES) =================
+// ===== FILTROS (MATRICES REALES) =====
 let filter=null
-
-const colorMatrices = {
-  deuteranopia: [
-    [0.625, 0.375, 0],
-    [0.7,   0.3,   0],
-    [0,     0.3,   0.7]
-  ],
-  protanopia: [
-    [0.567, 0.433, 0],
-    [0.558, 0.442, 0],
-    [0,     0.242, 0.758]
-  ],
-  tritanopia: [
-    [0.95,  0.05,  0],
-    [0,     0.433, 0.567],
-    [0,     0.475, 0.525]
-  ]
+const colorMatrices={
+ deuteranopia:[[0.625,0.375,0],[0.7,0.3,0],[0,0.3,0.7]],
+ protanopia:[[0.567,0.433,0],[0.558,0.442,0],[0,0.242,0.758]],
+ tritanopia:[[0.95,0.05,0],[0,0.433,0.567],[0,0.475,0.525]]
 }
+function setFilter(f){filter=f;applyFilter();closeMenu()}
 
-function setFilter(f){
-    filter=f
-    applyFilter()
-    closeMenu()
-}
-
-// ================= CANVAS PRINCIPAL =================
+// ===== CANVAS PRINCIPAL =====
 const canvas=document.getElementById("canvas")
 const ctx=canvas.getContext("2d")
 let originalImage=null
 
-// ================= SUBIR IMAGEN =================
+// ===== SUBIR IMAGEN =====
 imageInput.onchange=e=>{
-    const reader=new FileReader()
-    reader.onload=()=>{
-        const img=new Image()
-        img.onload=()=>{
-            canvas.style.display="block"
-            canvas.width=img.width
-            canvas.height=img.height
-            ctx.drawImage(img,0,0)
-            originalImage=ctx.getImageData(0,0,canvas.width,canvas.height)
-            applyFilter()
-        }
-        img.src=reader.result
-    }
-    reader.readAsDataURL(e.target.files[0])
-    closeMenu()
+ const r=new FileReader()
+ r.onload=()=>{
+  const img=new Image()
+  img.onload=()=>{
+   canvas.style.display="block"
+   canvas.width=img.width
+   canvas.height=img.height
+   ctx.drawImage(img,0,0)
+   originalImage=ctx.getImageData(0,0,canvas.width,canvas.height)
+   applyFilter()
+  }
+  img.src=r.result
+ }
+ r.readAsDataURL(e.target.files[0])
+ closeMenu()
 }
 
-// ================= APLICAR FILTRO REAL =================
+// ===== APLICAR FILTRO REAL =====
 function applyFilter(){
-    if(!originalImage) return
-
-    ctx.putImageData(originalImage,0,0)
-    if(!filter) return
-
-    const m = colorMatrices[filter]
-    let img = ctx.getImageData(0,0,canvas.width,canvas.height)
-    let d = img.data
-
-    for(let i=0;i<d.length;i+=4){
-        let r=d[i], g=d[i+1], b=d[i+2]
-
-        let nr = r*m[0][0] + g*m[0][1] + b*m[0][2]
-        let ng = r*m[1][0] + g*m[1][1] + b*m[1][2]
-        let nb = r*m[2][0] + g*m[2][1] + b*m[2][2]
-
-        d[i]   = Math.min(255,Math.max(0,nr))
-        d[i+1] = Math.min(255,Math.max(0,ng))
-        d[i+2] = Math.min(255,Math.max(0,nb))
-    }
-    ctx.putImageData(img,0,0)
+ if(!originalImage)return
+ ctx.putImageData(originalImage,0,0)
+ if(!filter)return
+ const m=colorMatrices[filter]
+ let img=ctx.getImageData(0,0,canvas.width,canvas.height)
+ let d=img.data
+ for(let i=0;i<d.length;i+=4){
+  let r=d[i],g=d[i+1],b=d[i+2]
+  d[i]=Math.min(255,r*m[0][0]+g*m[0][1]+b*m[0][2])
+  d[i+1]=Math.min(255,r*m[1][0]+g*m[1][1]+b*m[1][2])
+  d[i+2]=Math.min(255,r*m[2][0]+g*m[2][1]+b*m[2][2])
+ }
+ ctx.putImageData(img,0,0)
 }
 
-// ================= CÁMARA =================
+// ===== CÁMARA =====
 let stream=null
 async function startCamera(){
-    try{
-        stream=await navigator.mediaDevices.getUserMedia({video:true})
-        const video=document.createElement("video")
-        video.srcObject=stream
-        video.play()
-        video.onloadedmetadata=()=>{
-            canvas.style.display="block"
-            canvas.width=video.videoWidth
-            canvas.height=video.videoHeight
-            function loop(){
-                if(!stream) return
-                ctx.drawImage(video,0,0)
-                originalImage=ctx.getImageData(0,0,canvas.width,canvas.height)
-                applyFilter()
-                requestAnimationFrame(loop)
-            }
-            loop()
-        }
-        closeMenu()
-    }catch{
-        alert("No se pudo acceder a la cámara")
-    }
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({video:true})
+  const v=document.createElement("video")
+  v.srcObject=stream
+  v.play()
+  v.onloadedmetadata=()=>{
+   canvas.style.display="block"
+   canvas.width=v.videoWidth
+   canvas.height=v.videoHeight
+   function loop(){
+    if(!stream)return
+    ctx.drawImage(v,0,0)
+    originalImage=ctx.getImageData(0,0,canvas.width,canvas.height)
+    applyFilter()
+    requestAnimationFrame(loop)
+   }
+   loop()
+  }
+  closeMenu()
+ }catch{alert("No se pudo acceder a la cámara")}
 }
-function stopCamera(){
-    if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
-}
+function stopCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}}
 
-// ================= TEST CROMÁTICO (INDEPENDIENTE) =================
+// ===== TEST CROMÁTICO =====
 const plates=[
  {number:12,fg:[220,60,60],bg:[80,170,80]},
  {number:8, fg:[60,180,60],bg:[200,90,90]},
@@ -225,47 +239,39 @@ let idx=0
 const tCtx=testCanvas.getContext("2d")
 
 function drawPlate(p){
-    tCtx.clearRect(0,0,300,300)
-    for(let i=0;i<1600;i++){
-        let c=Math.random()<0.35?p.fg:p.bg
-        tCtx.fillStyle=`rgb(${c[0]},${c[1]},${c[2]})`
-        tCtx.beginPath()
-        tCtx.arc(Math.random()*300,Math.random()*300,Math.random()*5+3,0,Math.PI*2)
-        tCtx.fill()
-    }
-    tCtx.globalCompositeOperation="destination-in"
-    tCtx.font="bold 110px Arial"
-    tCtx.textAlign="center"
-    tCtx.textBaseline="middle"
-    tCtx.fillText(p.number,150,150)
-    tCtx.globalCompositeOperation="source-over"
+ tCtx.clearRect(0,0,300,300)
+ for(let i=0;i<1600;i++){
+  let c=Math.random()<0.35?p.fg:p.bg
+  tCtx.fillStyle=`rgb(${c[0]},${c[1]},${c[2]})`
+  tCtx.beginPath()
+  tCtx.arc(Math.random()*300,Math.random()*300,Math.random()*5+3,0,Math.PI*2)
+  tCtx.fill()
+ }
+ tCtx.globalCompositeOperation="destination-in"
+ tCtx.font="bold 110px Arial"
+ tCtx.textAlign="center"
+ tCtx.textBaseline="middle"
+ tCtx.fillText(p.number,150,150)
+ tCtx.globalCompositeOperation="source-over"
 }
-
 function startTest(){
-    idx=0
-    answer.value=""
-    result.textContent=""
-    testArea.style.display="block"
-    drawPlate(plates[idx])
-    closeMenu()
+ idx=0;answer.value="";result.textContent=""
+ testArea.style.display="block"
+ drawPlate(plates[idx])
+ closeMenu()
 }
 function submitAnswer(){
-    const ok=plates[idx].number
-    result.textContent=answer.value==ok?"✅ Correcto":"❌ Incorrecto (era "+ok+")"
-    idx++
-    answer.value=""
-    if(idx<plates.length){
-        setTimeout(()=>drawPlate(plates[idx]),1200)
-    }else{
-        setTimeout(()=>result.textContent+=" — Test finalizado",1200)
-    }
+ const ok=plates[idx].number
+ result.textContent=answer.value==ok?"✅ Correcto":"❌ Incorrecto (era "+ok+")"
+ idx++;answer.value=""
+ if(idx<plates.length)setTimeout(()=>drawPlate(plates[idx]),1200)
+ else setTimeout(()=>result.textContent+=" — Test finalizado",1200)
 }
 function closeTest(){testArea.style.display="none"}
 </script>
 
 </body>
 </html>
-
 
 
 
