@@ -1,591 +1,282 @@
 <!DOCTYPE html>
-<html lang='es'>
+<html lang="es">
 <head>
-<meta charset='UTF-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ColorAid PRO</title>
+
 <style>
-/* -------------------- Estilos Generales -------------------- */
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f2f2f2;
-    text-align: center;
-    padding-bottom: 30px; /* Espacio al final */
+body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#f2f2f2;
+    text-align:center;
+    padding-bottom:30px;
 }
-
-header {
-    background: #005bbb;
-    color: white;
-    padding: 15px;
-    font-size: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    position: sticky;
-    top: 0;
-    z-index: 50;
+header{
+    background:#005bbb;
+    color:white;
+    padding:15px;
+    font-size:22px;
+    display:flex;
+    align-items:center;
+    position:sticky;
+    top:0;
+    z-index:50;
 }
-
-header span {
-    margin-right: 15px;
-    cursor: pointer;
+header span{
+    margin-right:15px;
+    cursor:pointer;
 }
-
-h2 {
-    color: #005bbb;
-    border-bottom: 2px solid #005bbb;
-    padding-bottom: 5px;
-    width: 90%;
-    max-width: 400px;
-    margin: 20px auto 15px;
+h2{
+    color:#005bbb;
+    border-bottom:2px solid #005bbb;
+    padding-bottom:5px;
+    width:90%;
+    max-width:400px;
+    margin:20px auto 15px;
 }
-
-button {
-    padding: 12px;
-    margin: 8px;
-    width: 90%;
-    max-width: 300px;
-    border: none;
-    border-radius: 10px;
-    font-size: 16px;
-    background: #007bff;
-    color: white;
-    cursor: pointer;
-    transition: background-color 0.2s;
+button{
+    padding:12px;
+    margin:8px;
+    width:90%;
+    max-width:300px;
+    border:none;
+    border-radius:10px;
+    font-size:16px;
+    background:#007bff;
+    color:white;
+    cursor:pointer;
 }
-
-button:hover {
-    background: #0056b3;
+#statusIndicator{
+    background:#e9ecef;
+    padding:8px;
+    width:90%;
+    max-width:400px;
+    margin:10px auto;
+    border-radius:5px;
+    font-weight:bold;
 }
-
-/* -------------------- Indicador de Estado -------------------- */
-#statusIndicator {
-    background-color: #e9ecef;
-    padding: 8px;
-    margin: 0 auto 10px;
-    width: 90%;
-    max-width: 400px;
-    border-radius: 5px;
-    color: #333;
-    font-weight: bold;
-    font-size: 14px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+#menu{
+    position:fixed;
+    left:0;
+    top:0;
+    width:70%;
+    max-width:250px;
+    height:100%;
+    background:white;
+    transform:translateX(-100%);
+    transition:.3s;
+    padding:20px;
+    z-index:1000;
+    text-align:left;
+    overflow-y:auto;
 }
-
-/* -------------------- Menú Lateral -------------------- */
-#menu {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 70%;
-    max-width: 250px;
-    height: 100%;
-    background: white;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
-    transform: translateX(-100%);
-    transition: 0.3s;
-    padding: 20px;
-    z-index: 1000;
-    text-align: left;
-    overflow-y: auto;
+#menu.open{transform:translateX(0);}
+.mode-btn{
+    background:white;
+    border-left:6px solid #007bff;
+    padding:12px;
+    margin:5px 0;
+    cursor:pointer;
 }
-
-#menu.open {
-    transform: translateX(0);
+#imageContainer, #videoContainer{
+    margin:10px auto;
+    width:90%;
+    max-width:380px;
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 4px 8px rgba(0,0,0,.1);
 }
-
-.mode-btn {
-    background: white;
-    border-left: 6px solid #007bff;
-    border-radius: 5px;
-    padding: 12px;
-    margin: 5px 0;
-    cursor: pointer;
-    text-align: left;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.2s;
-}
-
-.mode-btn:hover {
-    background: #f0f0f0;
-}
-
-/* -------------------- Sección de Imagen Cargada -------------------- */
-#imageContainer {
-    margin: 10px auto;
-    max-width: 380px;
-    width: 90%;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-canvas#imageCanvas {
-    background: #ddd;
-    display: block;
-    width: 100%;
-    height: auto;
-}
-
-#filterControls {
-    margin: 10px auto 20px;
-    padding: 10px;
-    background: #e9ecef;
-    border-radius: 5px;
-    width: 90%;
-    max-width: 380px;
-}
-
-#filterControls button {
-    width: auto;
-    margin: 5px;
-    padding: 8px 15px;
-    font-size: 14px;
-    background: #28a745;
-}
-
-#filterControls button:hover {
-    background: #1e7e34;
-}
-
-/* -------------------- Sección de Cámara (más pequeña) -------------------- */
-#videoContainer {
-    margin: 10px auto;
-    max-width: 320px; /* Tamaño más pequeño para la cámara */
-    width: 90%;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-#video, #videoCanvas {
-    width: 100%;
-    height: auto;
-    display: block;
-}
-
-#cameraSelect {
-    margin-bottom: 10px;
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-}
-
-/* -------------------- Sección de Test -------------------- */
-#testArea {
-    width: 90%;
-    max-width: 380px;
-    margin: 20px auto;
-    padding: 15px;
-    border: 1px dashed #ccc;
-    border-radius: 8px;
-}
-
-canvas#testCanvas {
-    max-width: 100%;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-}
-
-#testAnswer {
-    padding: 10px;
-    width: 120px;
-    margin-top: 10px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
+canvas{width:100%;}
+#testArea{
+    width:90%;
+    max-width:380px;
+    margin:20px auto;
+    padding:15px;
+    border:1px dashed #ccc;
+    border-radius:8px;
 }
 </style>
 </head>
+
 <body>
 
-<header><span onclick="toggleMenu()">☰</span> ColorAid PRO</header>
+<header>
+    <span onclick="toggleMenu()">☰</span> ColorAid PRO
+</header>
 
 <div id="statusIndicator">Filtro Activo: Ninguno</div>
 
 <div id="menu">
-    <h3>Menú de Filtros</h3>
-    <div class="mode-btn" onclick="setFilter('deuteranopia')">Deuteranopia (Rojo-Verde)</div>
-    <div class="mode-btn" onclick="setFilter('protanopia')">Protanopia (Rojo-Verde)</div>
-    <div class="mode-btn" onclick="setFilter('tritanopia')">Tritanopia (Azul-Amarillo)</div>
-    <div class="mode-btn" onclick="setFilter(null)">Filtro Original / Desactivar</div>
+    <h3>Filtros</h3>
+    <div class="mode-btn" onclick="setFilter('deuteranopia')">Deuteranopia</div>
+    <div class="mode-btn" onclick="setFilter('protanopia')">Protanopia</div>
+    <div class="mode-btn" onclick="setFilter('tritanopia')">Tritanopia</div>
+    <div class="mode-btn" onclick="setFilter(null)">Desactivar</div>
     <hr>
-    <h3>Controles de Cámara</h3>
     <button onclick="startCamera()">Abrir Cámara</button>
-    <button onclick="stopCamera()">Detener Cámara</button>
+    <button onclick="stopCamera()">Cerrar Cámara</button>
     <hr>
-    <h3>Test</h3>
     <button onclick="startTest()">Test Ishihara</button>
-    <button onclick="toggleMenu()">Cerrar Menú</button>
+    <button onclick="toggleMenu()">Cerrar</button>
 </div>
 
-<h2>Subir imagen</h2>
+<h2>Subir Imagen</h2>
 <input type="file" id="imageInput" accept="image/*">
 
 <div id="imageContainer">
     <canvas id="imageCanvas"></canvas>
 </div>
 
-<div id="filterControls" style="display:none;">
-    <h4>Aplicar Filtro a Imagen:</h4>
-    <button onclick="applyCurrentFilterToImage()">Aplicar Filtro Actual</button>
-    <button onclick="resetImage()">Restaurar Imagen</button>
-</div>
-
-
 <h2>Cámara</h2>
-<select id="cameraSelect"></select>
 <div id="videoContainer">
-    <video id="video" autoplay playsinline style="display:none;"></video>
-    <canvas id="videoCanvas" style="display:none;"></canvas>
+    <canvas id="videoCanvas"></canvas>
 </div>
-
 
 <h2>Test Ishihara</h2>
 <div id="testArea" style="display:none;">
-    <canvas id="testCanvas"></canvas>
-    <input id="testAnswer" type="number" placeholder="Número" style="padding:10px;width:120px;margin-top:10px;">
+    <canvas id="testCanvas" width="300" height="300"></canvas><br>
+    <input id="testAnswer" type="number" placeholder="Número">
     <button onclick="submitAnswer()">Responder</button>
 </div>
+
 <div id="testResult"></div>
 
 <script>
-// -------------------- Lógica de la Aplicación --------------------
-
-function toggleMenu() {
+// ---------------- MENU ----------------
+function toggleMenu(){
     document.getElementById('menu').classList.toggle('open');
 }
 
-// Variables Globales
-let selectedMatrix = null;
-let originalImageData = null; 
-
-const matrices = {
-    // Matriz de corrección para Deuteranopia
-    deuteranopia: [
-        [0.625, 0.375, 0],
-        [0.7, 0.3, 0],
-        [0, 0.3, 0.7]
-    ],
-    // Matriz de corrección para Protanopia
-    protanopia: [
-        [0.567, 0.433, 0],
-        [0.558, 0.442, 0],
-        [0, 0.242, 0.758]
-    ],
-    // Matriz de corrección para Tritanopia
-    tritanopia: [
-        [0.95, 0.05, 0],
-        [0, 0.433, 0.567],
-        [0, 0.475, 0.525]
-    ]
+// ---------------- FILTROS ----------------
+let selectedMatrix=null;
+const matrices={
+    deuteranopia:[[0.625,0.375,0],[0.7,0.3,0],[0,0.3,0.7]],
+    protanopia:[[0.567,0.433,0],[0.558,0.442,0],[0,0.242,0.758]],
+    tritanopia:[[0.95,0.05,0],[0,0.433,0.567],[0,0.475,0.525]]
 };
-
-const filterNames = {
-    deuteranopia: "Deuteranopia",
-    protanopia: "Protanopia",
-    tritanopia: "Tritanopia",
-    null: "Ninguno"
-};
-
-// Elementos DOM
-const imgCanvas = document.getElementById("imageCanvas");
-const imgCtx = imgCanvas.getContext("2d");
-const statusIndicator = document.getElementById("statusIndicator");
-const filterControls = document.getElementById('filterControls');
-let originalImg = new Image();
-
-
-/**
- * Actualiza el indicador de filtro activo en la interfaz.
- */
-function updateStatusIndicator(type) {
-    const name = filterNames[type] || "Ninguno";
-    statusIndicator.textContent = "Filtro Activo: " + name;
+function setFilter(t){
+    selectedMatrix=t?matrices[t]:null;
+    document.getElementById("statusIndicator").textContent=
+        "Filtro Activo: "+(t||"Ninguno");
 }
 
-/**
- * Establece el filtro seleccionado y actualiza el estado.
- */
-function setFilter(type) {
-    selectedMatrix = type ? matrices[type] : null;
-    updateStatusIndicator(type);
-
-    // Si hay una imagen cargada, mostramos los controles para aplicarlo
-    if (originalImageData) {
-        filterControls.style.display = 'block';
+// ---------------- APLICAR MATRIZ ----------------
+function applyMatrix(canvas,ctx){
+    if(!selectedMatrix)return;
+    let img=ctx.getImageData(0,0,canvas.width,canvas.height);
+    let d=img.data,m=selectedMatrix;
+    for(let i=0;i<d.length;i+=4){
+        let r=d[i],g=d[i+1],b=d[i+2];
+        d[i]=r*m[0][0]+g*m[0][1]+b*m[0][2];
+        d[i+1]=r*m[1][0]+g*m[1][1]+b*m[1][2];
+        d[i+2]=r*m[2][0]+g*m[2][1]+b*m[2][2];
     }
+    ctx.putImageData(img,0,0);
 }
 
-/**
- * Aplica la matriz de filtro actual al lienzo dado.
- */
-function applyMatrix(canvas, ctx) {
-    if (!selectedMatrix) return;
-    
-    let img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    let d = img.data;
-    const m = selectedMatrix;
-    
-    for (let i = 0; i < d.length; i += 4) {
-        let r = d[i],
-            g = d[i + 1],
-            b = d[i + 2];
-        
-        let nr = r * m[0][0] + g * m[0][1] + b * m[0][2];
-        let ng = r * m[1][0] + g * m[1][1] + b * m[1][2];
-        let nb = r * m[2][0] + g * m[2][1] + b * m[2][2];
-        
-        d[i] = Math.min(255, Math.max(0, Math.floor(nr))); 
-        d[i + 1] = Math.min(255, Math.max(0, Math.floor(ng)));
-        d[i + 2] = Math.min(255, Math.max(0, Math.floor(nb)));
-    }
-    ctx.putImageData(img, 0, 0);
-}
-
-
-// --- Lógica de Imagen Cargada ---
-
-document.getElementById("imageInput").addEventListener("change", e => {
-    let f = e.target.files[0];
-    if (!f) return;
-    
-    let r = new FileReader();
-    r.onload = v => {
-        originalImg = new Image();
-        originalImg.onload = () => {
-            // Ajuste de tamaño base (se escala con CSS en el contenedor)
-            const maxWidth = 800; 
-            let ratio = originalImg.width > maxWidth ? maxWidth / originalImg.width : 1;
-            
-            imgCanvas.width = originalImg.width * ratio; 
-            imgCanvas.height = originalImg.height * ratio;
-            
-            imgCtx.drawImage(originalImg, 0, 0, imgCanvas.width, imgCanvas.height);
-            
-            // Guardar los datos de la imagen original (sin filtro)
-            originalImageData = imgCtx.getImageData(0, 0, imgCanvas.width, imgCanvas.height);
-            filterControls.style.display = 'block';
-
-            // Si hay un filtro seleccionado, aplicarlo inmediatamente
-            if (selectedMatrix) applyCurrentFilterToImage();
+// ---------------- IMAGEN ----------------
+const imgCanvas=document.getElementById("imageCanvas");
+const imgCtx=imgCanvas.getContext("2d");
+document.getElementById("imageInput").onchange=e=>{
+    let f=e.target.files[0];
+    let r=new FileReader();
+    r.onload=()=>{
+        let img=new Image();
+        img.onload=()=>{
+            imgCanvas.width=img.width;
+            imgCanvas.height=img.height;
+            imgCtx.drawImage(img,0,0);
+            applyMatrix(imgCanvas,imgCtx);
         };
-        originalImg.src = v.target.result;
+        img.src=r.result;
     };
     r.readAsDataURL(f);
-});
+};
 
-/**
- * Aplica el filtro seleccionado a la imagen cargada (sobre la base original).
- */
-function applyCurrentFilterToImage() {
-    if (!originalImageData) {
-        alert("Por favor, carga una imagen primero.");
-        return;
-    }
-    
-    // 1. Restaurar la imagen a su estado original (copia limpia)
-    imgCtx.putImageData(originalImageData, 0, 0);
-    
-    // 2. Aplicar el filtro si hay uno seleccionado
-    if (selectedMatrix) {
-        applyMatrix(imgCanvas, imgCtx);
-    }
-}
+// ---------------- CÁMARA ----------------
+let stream=null;
+const vCanvas=document.getElementById("videoCanvas");
+const vCtx=vCanvas.getContext("2d");
 
-/**
- * Restaura la imagen cargada a su estado original.
- */
-function resetImage() {
-    if (originalImageData) {
-        imgCtx.putImageData(originalImageData, 0, 0);
-        // Opcional: Quitar el filtro actual también
-        setFilter(null); 
-    }
-}
-
-
-// --- Lógica de la Cámara (más pequeña y optimizada) ---
-
-let stream = null;
-const video = document.getElementById("video");
-const videoCanvas = document.getElementById("videoCanvas");
-const vCtx = videoCanvas.getContext("2d");
-
-async function startCamera() {
-    try {
-        let devices = await navigator.mediaDevices.enumerateDevices();
-        let select = document.getElementById("cameraSelect");
-        select.innerHTML = "";
-        
-        devices.filter(d => d.kind === "videoinput").forEach(d => {
-            let opt = document.createElement("option");
-            opt.value = d.deviceId;
-            opt.textContent = d.label || "Cámara Desconocida";
-            select.appendChild(opt);
-        });
-        
-        let id = select.value;
-        if (!id) {
-            alert("No se encontraron cámaras de video.");
-            return;
+async function startCamera(){
+    stream=await navigator.mediaDevices.getUserMedia({video:true});
+    const video=document.createElement("video");
+    video.srcObject=stream;
+    video.play();
+    video.onloadeddata=()=>{
+        vCanvas.width=video.videoWidth;
+        vCanvas.height=video.videoHeight;
+        function loop(){
+            if(!stream)return;
+            vCtx.drawImage(video,0,0);
+            applyMatrix(vCanvas,vCtx);
+            requestAnimationFrame(loop);
         }
-
-        // Constraints: Solicitamos una resolución base más pequeña para rendimiento
-        const constraints = {
-            video: {
-                deviceId: id,
-                width: { ideal: 640 }, 
-                height: { ideal: 480 }
-            }
-        };
-
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-        video.srcObject = stream;
-        video.style.display = "none";
-        videoCanvas.style.display = "block";
-        
-        video.onloadedmetadata = () => {
-            // Sincronizamos el tamaño del canvas con la resolución real del stream
-            videoCanvas.width = video.videoWidth; 
-            videoCanvas.height = video.videoHeight;
-            requestAnimationFrame(loopCamera);
-        };
-        
-    } catch (err) {
-        console.error("Error al acceder a la cámara:", err);
-        alert("Error al acceder a la cámara. Asegúrate de tener permisos.");
-    }
+        loop();
+    };
+}
+function stopCamera(){
+    if(stream)stream.getTracks().forEach(t=>t.stop());
+    stream=null;
+    vCtx.clearRect(0,0,vCanvas.width,vCanvas.height);
 }
 
-function loopCamera() {
-    if (!stream) return;
-    
-    // 1. Dibujar el frame del video en el canvas
-    vCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
-    
-    // 2. Aplicar el filtro si está seleccionado
-    if (selectedMatrix) {
-        applyMatrix(videoCanvas, vCtx);
-    }
-    
-    // 3. Repetir para el siguiente frame
-    requestAnimationFrame(loopCamera);
-}
-
-function stopCamera() {
-    if (stream) {
-        stream.getTracks().forEach(t => t.stop());
-    }
-    stream = null;
-    video.style.display = "none";
-    videoCanvas.style.display = "none";
-    // Limpiar el canvas de video si es necesario
-    vCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
-}
-
-// --- Lógica del Test Ishihara ---
-
-// 1. Array de placas del test (RUTA SIMULADA: ishihara/plate_*.jpg)
-const ishiharaPlates = [
-    { id: 1, image: 'ishihara/plate_1.jpg', correct: 12, notes: 'Placa de prueba: 12' },
-    { id: 2, image: 'ishihara/plate_2.jpg', correct: 8, notes: 'Personas normales ven 8, daltónicos R/V ven 3' },
-    { id: 3, image: 'ishihara/plate_3.jpg', correct: 29, notes: 'Personas normales ven 29, daltónicos R/V ven 70' },
-    // Agrega más placas aquí, asegurándote de tener el archivo de imagen correspondiente.
-    // Ejemplo: { id: 4, image: 'ishihara/plate_4.jpg', correct: 5, notes: '...' }
+// ---------------- TEST ISHIHARA (EMBEBIDO) ----------------
+const ishiharaPlates=[
+    {id:1,correct:12},
+    {id:2,correct:8},
+    {id:3,correct:29}
 ];
 
-let currentPlateIndex = 0;
-const testCanvas = document.getElementById("testCanvas");
-const testCtx = testCanvas.getContext("2d");
-const testResultDiv = document.getElementById("testResult");
+let plateIndex=0;
+const tCanvas=document.getElementById("testCanvas");
+const tCtx=tCanvas.getContext("2d");
+const result=document.getElementById("testResult");
 
-
-/**
- * Inicia o continúa el Test Ishihara
- */
-function startTest() {
-    currentPlateIndex = 0;
-    document.getElementById('testArea').style.display = 'block';
-    loadPlate(currentPlateIndex);
-    toggleMenu(); // Cerrar menú al iniciar el test
+function drawPlate(number){
+    tCtx.clearRect(0,0,300,300);
+    for(let i=0;i<1200;i++){
+        tCtx.fillStyle=`hsl(${Math.random()*360},70%,60%)`;
+        tCtx.beginPath();
+        tCtx.arc(Math.random()*300,Math.random()*300,6,0,Math.PI*2);
+        tCtx.fill();
+    }
+    tCtx.fillStyle="black";
+    tCtx.font="bold 80px Arial";
+    tCtx.textAlign="center";
+    tCtx.textBaseline="middle";
+    tCtx.fillText(number,150,150);
+    applyMatrix(tCanvas,tCtx);
 }
 
-/**
- * Carga una placa específica en el canvas
- */
-function loadPlate(index) {
-    if (index >= ishiharaPlates.length) {
-        testResultDiv.textContent = "¡Test Terminado! Gracias por participar.";
-        document.getElementById('testArea').style.display = 'none';
-        return;
-    }
-
-    const plate = ishiharaPlates[index];
-    testResultDiv.textContent = `Placa ${plate.id} de ${ishiharaPlates.length}. ¿Qué número ves?`;
-    document.getElementById('testAnswer').value = ''; // Limpiar respuesta anterior
-    
-    // Cargar la imagen
-    const plateImg = new Image();
-    plateImg.onload = () => {
-        // Asegurar que el canvas tenga un tamaño manejable
-        const size = 300; 
-        testCanvas.width = size;
-        testCanvas.height = size;
-
-        // Dibujar la imagen de la placa
-        testCtx.drawImage(plateImg, 0, 0, size, size);
-
-        // Opcional: Aplicar el filtro actual al canvas del test (Simula cómo vería el usuario con el filtro)
-        if (selectedMatrix) {
-            applyMatrix(testCanvas, testCtx);
-        }
-    };
-    
-    // **NOTA CLAVE:** Aquí es donde se necesita la ruta real a tu imagen.
-    // Si la imagen no carga, verifica que la ruta sea correcta.
-    plateImg.src = plate.image; 
+function startTest(){
+    plateIndex=0;
+    document.getElementById("testArea").style.display="block";
+    drawPlate(ishiharaPlates[plateIndex].correct);
+    toggleMenu();
 }
 
-
-/**
- * Procesa la respuesta del usuario y avanza a la siguiente placa
- */
-function submitAnswer() {
-    const answerInput = document.getElementById('testAnswer');
-    const answer = parseInt(answerInput.value);
-
-    if (isNaN(answer)) {
-        testResultDiv.textContent = `Por favor, ingresa un número.`;
-        return;
+function submitAnswer(){
+    let ans=parseInt(document.getElementById("testAnswer").value);
+    let correct=ishiharaPlates[plateIndex].correct;
+    result.textContent=(ans===correct?"✅ Correcto":"❌ Incorrecto")+" (Era "+correct+")";
+    plateIndex++;
+    if(plateIndex<ishiharaPlates.length){
+        setTimeout(()=>drawPlate(ishiharaPlates[plateIndex].correct),1200);
+    }else{
+        setTimeout(()=>{
+            result.textContent+=" — Test finalizado";
+            document.getElementById("testArea").style.display="none";
+        },1200);
     }
-    
-    const currentPlate = ishiharaPlates[currentPlateIndex];
-    
-    // Lógica simple de verificación
-    if (answer === currentPlate.correct) {
-        testResultDiv.textContent = `✅ ¡Respuesta Correcta! (${currentPlate.correct}). Pasando a la siguiente placa.`;
-    } else {
-        testResultDiv.textContent = `❌ Respuesta enviada: ${answer}. (La respuesta esperada es: ${currentPlate.correct}). Pasando a la siguiente.`;
-    }
-    
-    // Avanzar a la siguiente placa después de un breve retraso
-    setTimeout(() => {
-        currentPlateIndex++;
-        loadPlate(currentPlateIndex);
-    }, 1500); // 1.5 segundos de pausa
 }
-
-
-// Inicializar el indicador de estado al cargar
-document.addEventListener('DOMContentLoaded', () => {
-    updateStatusIndicator(null);
-});
-
 </script>
 
 </body>
 </html>
+
 
 
 
