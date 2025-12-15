@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -7,7 +6,6 @@
 <title>ColorAid PRO</title>
 
 <style>
-/* ================== GENERAL ================== */
 body{
     margin:0;
     font-family:Arial, sans-serif;
@@ -16,7 +14,7 @@ body{
     padding-bottom:40px;
 }
 
-/* ================== HEADER ================== */
+/* HEADER */
 header{
     background:#005bbb;
     color:white;
@@ -26,15 +24,18 @@ header{
     align-items:center;
     position:sticky;
     top:0;
-    z-index:10000; /* 🔥 CLAVE */
+    z-index:10000;
 }
-header span{
+#menuBtn{
+    background:none;
+    border:none;
+    color:white;
+    font-size:26px;
     margin-right:15px;
     cursor:pointer;
-    font-size:26px;
 }
 
-/* ================== STATUS ================== */
+/* STATUS */
 #statusIndicator{
     background:#e9ecef;
     padding:8px;
@@ -45,7 +46,7 @@ header span{
     font-weight:bold;
 }
 
-/* ================== MENU ================== */
+/* MENU */
 #menu{
     position:fixed;
     left:0;
@@ -58,31 +59,26 @@ header span{
     transform:translateX(-100%);
     transition:transform .3s ease;
     padding:20px;
-    z-index:9999; /* 🔥 CLAVE */
+    z-index:9999;
     text-align:left;
-    overflow-y:auto;
 }
 #menu.open{ transform:translateX(0); }
 
 .mode-btn{
-    background:white;
     border-left:6px solid #007bff;
-    border-radius:5px;
     padding:12px;
     margin:6px 0;
     cursor:pointer;
 }
 
-/* ================== SECTIONS ================== */
+/* SECTIONS */
 h2{
     color:#005bbb;
     border-bottom:2px solid #005bbb;
     width:90%;
     max-width:400px;
     margin:20px auto 10px;
-    padding-bottom:5px;
 }
-
 button{
     padding:12px;
     margin:8px;
@@ -93,24 +89,8 @@ button{
     font-size:16px;
     background:#007bff;
     color:white;
-    cursor:pointer;
 }
-
-input{ padding:10px; }
-
-#imageContainer,#videoContainer{
-    margin:10px auto;
-    max-width:380px;
-    width:90%;
-    border-radius:10px;
-    overflow:hidden;
-    box-shadow:0 4px 8px rgba(0,0,0,.1);
-}
-
-canvas{
-    width:100%;
-    display:block;
-}
+canvas{ width:100%; }
 
 #testArea{
     width:90%;
@@ -126,12 +106,11 @@ canvas{
 <body>
 
 <header>
-    <span onclick="toggleMenu()">☰</span> ColorAid PRO
+    <button id="menuBtn">☰</button> ColorAid PRO
 </header>
 
 <div id="statusIndicator">Filtro Activo: Ninguno</div>
 
-<!-- ================== MENU ================== -->
 <div id="menu">
     <h3>Filtros</h3>
     <div class="mode-btn" onclick="setFilter('deuteranopia')">Deuteranopia</div>
@@ -139,30 +118,13 @@ canvas{
     <div class="mode-btn" onclick="setFilter('tritanopia')">Tritanopia</div>
     <div class="mode-btn" onclick="setFilter(null)">Desactivar</div>
     <hr>
-    <h3>Test</h3>
     <button onclick="startTest()">Test Ishihara</button>
-    <button onclick="toggleMenu()">Cerrar menú</button>
+    <button onclick="toggleMenu()">Cerrar</button>
 </div>
 
-<!-- ================== IMAGE ================== -->
-<h2>Subir Imagen</h2>
-<input type="file" id="imageInput" accept="image/*">
-<div id="imageContainer">
-    <canvas id="imageCanvas"></canvas>
-</div>
-
-<!-- ================== CAMERA ================== -->
-<h2>Cámara</h2>
-<div id="videoContainer">
-    <canvas id="videoCanvas"></canvas>
-</div>
-
-<!-- ================== ISHIHARA ================== -->
-<h2>Test Ishihara (imagen real)</h2>
-<input type="file" id="ishiharaInput" accept="image/*">
-
+<h2>Test Ishihara (educativo)</h2>
 <div id="testArea" style="display:none;">
-    <canvas id="testCanvas" width="300" height="300"></canvas>
+    <canvas id="testCanvas" width="300" height="300"></canvas><br>
     <input id="testAnswer" type="number" placeholder="Número">
     <button onclick="submitAnswer()">Responder</button>
 </div>
@@ -170,113 +132,74 @@ canvas{
 <div id="testResult"></div>
 
 <script>
-/* ================== MENU ================== */
-function toggleMenu(){
-    document.getElementById("menu").classList.toggle("open");
-}
+document.addEventListener("DOMContentLoaded",()=>{
 
-/* ================== FILTERS ================== */
+/* MENU */
+const menu=document.getElementById("menu");
+document.getElementById("menuBtn").onclick=()=>menu.classList.toggle("open");
+window.toggleMenu=()=>menu.classList.toggle("open");
+
+/* FILTROS */
 let selectedMatrix=null;
 const matrices={
     deuteranopia:[[0.625,0.375,0],[0.7,0.3,0],[0,0.3,0.7]],
     protanopia:[[0.567,0.433,0],[0.558,0.442,0],[0,0.242,0.758]],
     tritanopia:[[0.95,0.05,0],[0,0.433,0.567],[0,0.475,0.525]]
 };
-
-function setFilter(type){
-    selectedMatrix=type?matrices[type]:null;
-    document.getElementById("statusIndicator").textContent =
-        "Filtro Activo: "+(type ?? "Ninguno");
-}
-
-/* ================== APPLY MATRIX ================== */
-function applyMatrix(canvas,ctx){
-    if(!selectedMatrix) return;
-    let img=ctx.getImageData(0,0,canvas.width,canvas.height);
-    let d=img.data,m=selectedMatrix;
-    for(let i=0;i<d.length;i+=4){
-        let r=d[i],g=d[i+1],b=d[i+2];
-        d[i]=r*m[0][0]+g*m[0][1]+b*m[0][2];
-        d[i+1]=r*m[1][0]+g*m[1][1]+b*m[1][2];
-        d[i+2]=r*m[2][0]+g*m[2][1]+b*m[2][2];
-    }
-    ctx.putImageData(img,0,0);
-}
-
-/* ================== IMAGE ================== */
-const imgCanvas=document.getElementById("imageCanvas");
-const imgCtx=imgCanvas.getContext("2d");
-document.getElementById("imageInput").onchange=e=>{
-    const r=new FileReader();
-    r.onload=()=>{
-        const img=new Image();
-        img.onload=()=>{
-            imgCanvas.width=img.width;
-            imgCanvas.height=img.height;
-            imgCtx.drawImage(img,0,0);
-            applyMatrix(imgCanvas,imgCtx);
-        };
-        img.src=r.result;
-    };
-    r.readAsDataURL(e.target.files[0]);
+window.setFilter=(t)=>{
+    selectedMatrix=t?matrices[t]:null;
+    document.getElementById("statusIndicator").textContent=
+        "Filtro Activo: "+(t??"Ninguno");
 };
 
-/* ================== ISHIHARA ================== */
-let sourceImg=new Image();
-document.getElementById("ishiharaInput").onchange=e=>{
-    const r=new FileReader();
-    r.onload=ev=>sourceImg.src=ev.target.result;
-    r.readAsDataURL(e.target.files[0]);
-};
+/* ISHIHARA EDU */
+const plates=[12,8,29,5];
+let idx=0;
+const canvas=document.getElementById("testCanvas");
+const ctx=canvas.getContext("2d");
 
-const plates=[
-    {x:0,y:0,s:200,correct:12},
-    {x:200,y:0,s:200,correct:8},
-    {x:400,y:0,s:200,correct:29},
-    {x:0,y:200,s:200,correct:5}
-];
-
-let plateIndex=0;
-const testCanvas=document.getElementById("testCanvas");
-const testCtx=testCanvas.getContext("2d");
-
-function startTest(){
-    if(!sourceImg.src){
-        alert("Primero carga la imagen Ishihara");
-        return;
+function drawPlate(n){
+    ctx.clearRect(0,0,300,300);
+    for(let i=0;i<1200;i++){
+        ctx.fillStyle=`hsl(${Math.random()*360},70%,60%)`;
+        ctx.beginPath();
+        ctx.arc(Math.random()*300,Math.random()*300,6,0,Math.PI*2);
+        ctx.fill();
     }
-    plateIndex=0;
+    ctx.fillStyle="black";
+    ctx.font="bold 80px Arial";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.fillText(n,150,150);
+}
+
+window.startTest=()=>{
+    idx=0;
     document.getElementById("testArea").style.display="block";
-    drawPlate();
-    toggleMenu();
-}
+    drawPlate(plates[idx]);
+    menu.classList.remove("open");
+};
 
-function drawPlate(){
-    const p=plates[plateIndex];
-    testCtx.clearRect(0,0,300,300);
-    testCtx.drawImage(sourceImg,p.x,p.y,p.s,p.s,0,0,300,300);
-    applyMatrix(testCanvas,testCtx);
-}
-
-function submitAnswer(){
+window.submitAnswer=()=>{
     const val=parseInt(document.getElementById("testAnswer").value);
-    const ok=plates[plateIndex].correct;
-    document.getElementById("testResult").textContent =
+    const ok=plates[idx];
+    document.getElementById("testResult").textContent=
         val===ok?"✅ Correcto":"❌ Incorrecto (era "+ok+")";
-    plateIndex++;
-    if(plateIndex<plates.length){
-        setTimeout(drawPlate,1200);
+    idx++;
+    if(idx<plates.length){
+        setTimeout(()=>drawPlate(plates[idx]),1200);
     }else{
         setTimeout(()=>{
             document.getElementById("testResult").textContent+=" — Test finalizado";
             document.getElementById("testArea").style.display="none";
         },1200);
     }
-}
+};
+
+});
 </script>
 
 </body>
 </html>
-
 
 
