@@ -3,90 +3,49 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ColorAid PRO – Test Cromático</title>
+<title>ColorAid PRO – Cromático</title>
 
 <style>
 *{box-sizing:border-box;}
-body{
-    margin:0;
-    font-family:Arial, sans-serif;
-    background:#f2f2f2;
-}
+body{margin:0;font-family:Arial;background:#f2f2f2}
 header{
-    background:#005bbb;
-    color:white;
-    padding:15px;
-    font-size:22px;
-    display:flex;
-    align-items:center;
+    background:#005bbb;color:#fff;padding:15px;
+    font-size:22px;display:flex;align-items:center
 }
-#menuBtn{
-    font-size:26px;
-    background:none;
-    border:none;
-    color:white;
-    margin-right:15px;
-    cursor:pointer;
-}
+#menuBtn{font-size:26px;background:none;border:none;color:white;margin-right:15px}
 
-/* Overlay + menú */
 #overlay{
-    display:none;
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,.4);
-    z-index:900;
+    display:none;position:fixed;inset:0;
+    background:rgba(0,0,0,.4);z-index:900
 }
 #menu{
-    position:fixed;
-    top:0;
-    left:-260px;
-    width:260px;
-    height:100vh;
-    background:white;
-    padding:20px;
-    box-shadow:2px 0 10px rgba(0,0,0,.3);
-    transition:.3s;
-    z-index:1000;
+    position:fixed;top:0;left:-260px;width:260px;height:100vh;
+    background:#fff;padding:20px;box-shadow:2px 0 10px rgba(0,0,0,.3);
+    transition:.3s;z-index:1000
 }
-#menu.open{left:0;}
+#menu.open{left:0}
 
-.menu-title{font-weight:bold;margin:15px 0 5px;}
+.menu-title{font-weight:bold;margin:15px 0 5px}
 .menu-btn{
-    width:100%;
-    padding:10px;
-    margin:4px 0;
-    border:none;
-    border-radius:5px;
-    background:#007bff;
-    color:white;
-    cursor:pointer;
+    width:100%;padding:10px;margin:4px 0;
+    border:none;border-radius:5px;background:#007bff;color:white
 }
-.menu-btn.close{background:#dc3545;}
+.menu-btn.close{background:#dc3545}
 
-main{text-align:center;padding:20px;}
+main{text-align:center;padding:20px}
 
 #canvas{
-    display:none;
-    margin:15px auto;
-    max-width:360px;
-    width:100%;
-    border-radius:10px;
-    box-shadow:0 4px 8px rgba(0,0,0,.2);
+    display:none;margin:15px auto;max-width:360px;width:100%;
+    border-radius:10px;box-shadow:0 4px 8px rgba(0,0,0,.2)
 }
 
-#testArea{display:none;margin-top:20px;}
+#testArea{display:none;margin-top:20px}
 #testCanvas{
-    display:block;
-    width:300px;
-    height:300px;
-    margin:10px auto;
-    border-radius:50%;
-    box-shadow:0 4px 8px rgba(0,0,0,.2);
+    width:300px;height:300px;border-radius:50%;
+    box-shadow:0 4px 8px rgba(0,0,0,.2)
 }
 
-input[type=file]{display:none;}
-input[type=number]{padding:8px;width:150px;}
+input[type=number]{padding:8px;width:150px}
 </style>
 </head>
 
@@ -108,6 +67,10 @@ input[type=number]{padding:8px;width:150px;}
     <button class="menu-btn" onclick="setFilter('protanopia')">Protanopia</button>
     <button class="menu-btn" onclick="setFilter('tritanopia')">Tritanopia</button>
 
+    <div class="menu-title">Cámara</div>
+    <button class="menu-btn" onclick="startCamera()">📷 Abrir cámara</button>
+    <button class="menu-btn close" onclick="stopCamera()">⛔ Cerrar cámara</button>
+
     <div class="menu-title">Test</div>
     <button class="menu-btn" onclick="startTest()">🧠 Test cromático</button>
 </div>
@@ -117,10 +80,8 @@ input[type=number]{padding:8px;width:150px;}
 
     <div id="testArea">
         <h3>Test de percepción cromática</h3>
-        <canvas id="testCanvas" width="300" height="300"></canvas>
-        <br>
-        <input id="answer" type="number" placeholder="Número que ves">
-        <br><br>
+        <canvas id="testCanvas" width="300" height="300"></canvas><br>
+        <input id="answer" type="number" placeholder="Número que ves"><br><br>
         <button class="menu-btn" onclick="submitAnswer()">Responder</button>
         <button class="menu-btn close" onclick="closeTest()">Cerrar test</button>
     </div>
@@ -129,83 +90,100 @@ input[type=number]{padding:8px;width:150px;}
 </main>
 
 <script>
-// ================= MENÚ =================
-const menu=document.getElementById("menu");
-const overlay=document.getElementById("overlay");
-menuBtn.onclick=()=>{menu.classList.add("open");overlay.style.display="block";}
-overlay.onclick=closeMenu;
-function closeMenu(){menu.classList.remove("open");overlay.style.display="none";}
+// ===== MENÚ =====
+menuBtn.onclick=()=>{menu.classList.add("open");overlay.style.display="block"}
+overlay.onclick=closeMenu
+function closeMenu(){menu.classList.remove("open");overlay.style.display="none"}
 
-// ================= FILTROS (estado) =================
-let visionMode=null;
-function setFilter(type){visionMode=type;closeMenu();}
+// ===== FILTROS =====
+let visionMode=null
+function setFilter(t){visionMode=t;closeMenu()}
 
-// ================= TEST CROMÁTICO REAL =================
-const plates=[
-  {number:12, fg:[220,60,60], bg:[80,170,80]},
-  {number:8,  fg:[60,180,60], bg:[200,90,90]},
-  {number:29, fg:[60,90,200], bg:[200,200,80]},
-  {number:5,  fg:[180,120,40], bg:[120,120,120]}
-];
+// ===== CÁMARA =====
+const canvas=document.getElementById("canvas")
+const ctx=canvas.getContext("2d")
+let stream=null
 
-let idx=0;
-const testCanvas=document.getElementById("testCanvas");
-const tCtx=testCanvas.getContext("2d");
+async function startCamera(){
+    try{
+        stream=await navigator.mediaDevices.getUserMedia({video:true})
+        const video=document.createElement("video")
+        video.srcObject=stream
+        video.play()
+        video.onloadedmetadata=()=>{
+            canvas.style.display="block"
+            canvas.width=video.videoWidth
+            canvas.height=video.videoHeight
+            function loop(){
+                if(!stream)return
+                ctx.drawImage(video,0,0)
+                applyVisionFilter()
+                requestAnimationFrame(loop)
+            }
+            loop()
+        }
+        closeMenu()
+    }catch{alert("No se pudo acceder a la cámara")}
+}
 
-function drawPlateReal(plate){
-    tCtx.clearRect(0,0,300,300);
+function stopCamera(){
+    if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+}
 
-    for(let i=0;i<1600;i++){
-        const isNumber=Math.random()<0.35;
-        let c=isNumber?plate.fg:plate.bg;
-
-        // Simulación perceptual
-        if(visionMode==="deuteranopia") c=[c[0],c[1]*0.6,c[2]];
-        if(visionMode==="protanopia")   c=[c[0]*0.6,c[1],c[2]];
-        if(visionMode==="tritanopia")   c=[c[0],c[1],c[2]*0.6];
-
-        tCtx.fillStyle=`rgb(${c[0]},${c[1]},${c[2]})`;
-        tCtx.beginPath();
-        tCtx.arc(
-            Math.random()*300,
-            Math.random()*300,
-            Math.random()*5+3,
-            0,Math.PI*2
-        );
-        tCtx.fill();
+function applyVisionFilter(){
+    if(!visionMode)return
+    let img=ctx.getImageData(0,0,canvas.width,canvas.height)
+    let d=img.data
+    for(let i=0;i<d.length;i+=4){
+        if(visionMode==="deuteranopia") d[i+1]*=0.6
+        if(visionMode==="protanopia") d[i]*=0.6
+        if(visionMode==="tritanopia") d[i+2]*=0.6
     }
+    ctx.putImageData(img,0,0)
+}
 
-    // máscara del número
-    tCtx.globalCompositeOperation="destination-in";
-    tCtx.font="bold 110px Arial";
-    tCtx.textAlign="center";
-    tCtx.textBaseline="middle";
-    tCtx.fillText(plate.number,150,150);
-    tCtx.globalCompositeOperation="source-over";
+// ===== TEST CROMÁTICO =====
+const plates=[
+ {number:12,fg:[220,60,60],bg:[80,170,80]},
+ {number:8, fg:[60,180,60],bg:[200,90,90]}
+]
+let idx=0
+const tCtx=testCanvas.getContext("2d")
+
+function drawPlate(p){
+    tCtx.clearRect(0,0,300,300)
+    for(let i=0;i<1500;i++){
+        let c=Math.random()<0.35?p.fg:p.bg
+        tCtx.fillStyle=`rgb(${c[0]},${c[1]},${c[2]})`
+        tCtx.beginPath()
+        tCtx.arc(Math.random()*300,Math.random()*300,Math.random()*5+3,0,Math.PI*2)
+        tCtx.fill()
+    }
+    tCtx.globalCompositeOperation="destination-in"
+    tCtx.font="bold 110px Arial"
+    tCtx.textAlign="center"
+    tCtx.textBaseline="middle"
+    tCtx.fillText(p.number,150,150)
+    tCtx.globalCompositeOperation="source-over"
 }
 
 function startTest(){
-    idx=0;
-    testArea.style.display="block";
-    drawPlateReal(plates[idx]);
-    closeMenu();
+    idx=0
+    testArea.style.display="block"
+    drawPlate(plates[idx])
+    closeMenu()
 }
-
 function submitAnswer(){
-    const val=parseInt(answer.value);
-    const ok=plates[idx].number;
-    result.textContent=val===ok?"✅ Correcto":"❌ Incorrecto (era "+ok+")";
-    idx++;
-    if(idx<plates.length){
-        setTimeout(()=>drawPlateReal(plates[idx]),1200);
-    }else{
-        setTimeout(()=>result.textContent+=" — Test finalizado",1200);
-    }
+    const ok=plates[idx].number
+    result.textContent=answer.value==ok?"✅ Correcto":"❌ Incorrecto"
+    idx++
+    if(idx<plates.length)setTimeout(()=>drawPlate(plates[idx]),1200)
 }
-
-function closeTest(){testArea.style.display="none";}
+function closeTest(){testArea.style.display="none"}
 </script>
 
 </body>
 </html>
+
+
 
