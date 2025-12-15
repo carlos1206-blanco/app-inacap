@@ -1,124 +1,32 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ColorAid PRO</title>
-
 <style>
-body{
-    margin:0;
-    font-family:Arial, sans-serif;
-    background:#f2f2f2;
-    text-align:center;
-    padding-bottom:40px;
-}
-
-/* HEADER */
-header{
-    background:#005bbb;
-    color:white;
-    padding:15px;
-    font-size:22px;
-    display:flex;
-    align-items:center;
-    position:sticky;
-    top:0;
-    z-index:10000;
-}
-#menuBtn{
-    background:none;
-    border:none;
-    color:white;
-    font-size:26px;
-    margin-right:15px;
-    cursor:pointer;
-}
-
-/* STATUS */
-#statusIndicator{
-    background:#e9ecef;
-    padding:8px;
-    width:90%;
-    max-width:420px;
-    margin:10px auto;
-    border-radius:5px;
-    font-weight:bold;
-}
-
-/* MENU */
-#menu{
-    position:fixed;
-    left:0;
-    top:0;
-    width:75%;
-    max-width:260px;
-    height:100vh;
-    background:white;
-    box-shadow:2px 0 12px rgba(0,0,0,.35);
-    transform:translateX(-100%);
-    transition:.3s;
-    padding:20px;
-    z-index:9999;
-    text-align:left;
-}
-#menu.open{ transform:translateX(0); }
-
-.menu-btn{
-    padding:12px;
-    margin:6px 0;
-    width:100%;
-    border:none;
-    border-radius:6px;
-    background:#007bff;
-    color:white;
-    cursor:pointer;
-}
-
-/* SECTIONS */
-h2{
-    color:#005bbb;
-    border-bottom:2px solid #005bbb;
-    width:90%;
-    max-width:420px;
-    margin:20px auto 10px;
-}
-
-canvas{
-    width:100%;
-    max-width:360px;
-    border-radius:10px;
-    box-shadow:0 4px 8px rgba(0,0,0,.1);
-}
-
-/* TEST */
-#testArea{
-    width:90%;
-    max-width:380px;
-    margin:20px auto;
-    padding:15px;
-    border:1px dashed #ccc;
-    border-radius:8px;
-}
+body{margin:0;font-family:Arial,sans-serif;background:#f2f2f2;text-align:center;padding-bottom:40px;}
+header{background:#005bbb;color:white;padding:15px;font-size:22px;display:flex;align-items:center;position:sticky;top:0;z-index:10000;}
+#menuBtn{background:none;border:none;color:white;font-size:26px;margin-right:15px;cursor:pointer;}
+#menu{position:fixed;left:0;top:0;width:75%;max-width:260px;height:100vh;background:white;box-shadow:2px 0 12px rgba(0,0,0,.35);transform:translateX(-100%);transition:.3s;padding:20px;z-index:9999;text-align:left;}
+#menu.open{transform:translateX(0);}
+.menu-btn{padding:12px;margin:6px 0;width:100%;border:none;border-radius:6px;background:#007bff;color:white;cursor:pointer;}
+canvas{width:100%;max-width:360px;border-radius:10px;box-shadow:0 4px 8px rgba(0,0,0,.1);}
+#testArea{width:90%;max-width:380px;margin:20px auto;padding:15px;border:1px dashed #ccc;border-radius:8px;}
 </style>
 </head>
-
 <body>
 
 <header>
-    <button id="menuBtn">☰</button> ColorAid PRO
+<button id="menuBtn">☰</button> ColorAid PRO
 </header>
 
-<div id="statusIndicator">Estado: Listo</div>
-
-<!-- MENU -->
 <div id="menu">
-    <h3>Opciones</h3>
-    <button class="menu-btn" onclick="startCamera()">📷 Abrir cámara</button>
-    <button class="menu-btn" onclick="stopCamera()">⛔ Cerrar cámara</button>
-    <button class="menu-btn" onclick="startTest()">🧠 Test Ishihara</button>
-    <button class="menu-btn" onclick="toggleMenu()">❌ Cerrar menú</button>
+<h3>Opciones</h3>
+<button class="menu-btn" onclick="startCamera()">📷 Abrir cámara</button>
+<button class="menu-btn" onclick="stopCamera()">⛔ Cerrar cámara</button>
+<button class="menu-btn" onclick="startTest()">🧠 Test Ishihara</button>
+<button class="menu-btn" onclick="toggleMenu()">❌ Cerrar menú</button>
 </div>
 
 <h2>Cámara</h2>
@@ -126,104 +34,95 @@ canvas{
 
 <h2>Test Ishihara</h2>
 <div id="testArea" style="display:none;">
-    <canvas id="testCanvas" width="300" height="300"></canvas><br>
-    <input id="testAnswer" type="number" placeholder="Número">
-    <button onclick="submitAnswer()">Responder</button>
+<canvas id="testCanvas" width="300" height="300"></canvas><br>
+<input id="answer" type="number" placeholder="Número">
+<button onclick="submitAnswer()">Responder</button>
 </div>
 
-<div id="testResult"></div>
+<div id="result"></div>
 
 <script>
-/* ================= MENU ================= */
 const menu=document.getElementById("menu");
 document.getElementById("menuBtn").onclick=()=>menu.classList.toggle("open");
-function toggleMenu(){ menu.classList.toggle("open"); }
+function toggleMenu(){menu.classList.toggle("open");}
 
-/* ================= CÁMARA (FUNCIONAL) ================= */
+// Cámara
 let stream=null;
 const videoCanvas=document.getElementById("videoCanvas");
 const vCtx=videoCanvas.getContext("2d");
-
 async function startCamera(){
-    try{
-        stream=await navigator.mediaDevices.getUserMedia({
-            video:{facingMode:"environment"}
-        });
-        const video=document.createElement("video");
-        video.srcObject=stream;
-        video.play();
-        video.onloadeddata=()=>{
-            videoCanvas.width=video.videoWidth;
-            videoCanvas.height=video.videoHeight;
-            function loop(){
-                if(!stream) return;
-                vCtx.drawImage(video,0,0);
-                requestAnimationFrame(loop);
-            }
-            loop();
-        };
-        menu.classList.remove("open");
-    }catch(e){
-        alert("No se pudo acceder a la cámara");
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+  const video=document.createElement("video");
+  video.srcObject=stream;
+  video.play();
+  video.onloadeddata=()=>{
+    videoCanvas.width=video.videoWidth;
+    videoCanvas.height=video.videoHeight;
+    function loop(){
+      if(!stream)return;
+      vCtx.drawImage(video,0,0);
+      requestAnimationFrame(loop);
     }
+    loop();
+  };
+  menu.classList.remove("open");
+ }catch(e){alert("No se pudo acceder a la cámara");}
 }
-
 function stopCamera(){
-    if(stream){
-        stream.getTracks().forEach(t=>t.stop());
-        stream=null;
-        vCtx.clearRect(0,0,videoCanvas.width,videoCanvas.height);
-    }
+ if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+ vCtx.clearRect(0,0,videoCanvas.width,videoCanvas.height);
 }
 
-/* ================= ISHIHARA (RECORTE) ================= */
-/* Imagen collage embebida (la que tú mostraste) */
+// Ishihara
 const ishiharaImg=new Image();
-ishiharaImg.src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..." 
-/* ⚠️ NOTA:
-   Por límite de texto acá va recortada.
-   EN TU ENTREGA REAL yo te paso el BASE64 COMPLETO
-   de la imagen que subiste (Shutterstock con placas).
-*/
+ishiharaImg.src="data:image/png;base64,+9HAqhF
+PxkMzffabftqq1fcftv5990/9/x1bHv7/i+/4huNp3btbmtpiy8sDEmIo0l2cMuW8caavLmzQgNV
+uVMyMzOShQIqPi4qZ0rGjJlFKakJG75YX1ld1dLSKVdrA8IjBx32d957e5zzXvryy5c99uhbSXir
+pAAAEABJREFU779/cv+RwvMuKjrnXGlswoPXX6+JT1j9+BPp56yC6IjGof7O/qHyYydtPf3HTpeP
+D48CwwHHUUCcmcnEL0YU8EQgEHB8sU/o7nf7jCzroXlCzajVHCRSBIulb3z43otvf2T2CUMTcyXq
+EJFE5nA7CZIRCLwUMCyI3SPy8X5pMxiOtOzrdzaUtB5qMDRISHlGehbHuOMitTEBopGOBpvBoBCI
+IyTKBG1o7UhNSWXZu4c31MGAQBjp5IuHnYYuS9PBo1+GkezKxLgr0goKFGEKAAFBgsczgRlXAQl8
+uLEJzBU7XPDhOxsz0mbmZi1KS5zW3dnZ092kUZFCynVoz04hxy/OXZSRWNBVfZyW8oJikkysiFZH
+BqZljzkM9a0VXQOt7b0tcrVcrBAJpQSQXoIUtbWP4ZcDsSQyRBfLODh8HQkLT7jzzkfyCucUTF1k
+NHljomOGR7vv+/Mtr773+Lorl42Zu1pb2gPUEWEhibt3Hjab7IB2kSAAOPAHP2AO7e2knQceAzyJ
+RLVq1er5c2etWjYfvKbq8n2EZ7C/q76tuUMk1mjUgSSP0gVSHnc/RYkIjzBGF5IXn6AENiUyPFgb
+EBykam0o8dr62ptLWqtP8GlwuFiKDuIItVAsys5Nmz9/llgsYBgyM2tqXtEioJQbN3wNHD11xboF
+K9YGxye4zJbBIYtIHqHVxFdVtTnsKF487gngkPygYWIKHDfBkwLwkpKwuCeff+X2+x9+9Oln5WER
+LqsFX7MJ/GDFwuDw2CeffTFcXtbeWGMdHWBsJvwaZDU5FNowvYcOT83XJib19XYoBYRaAEKSra+t
+1mh0vb19VoczODyisqGtvKrCaxj29nfmnrM6d/qcmLTca266+9jxEoovfm/DhmdfeqF4yXyrfmRo
+2Ojw8kGibe8aZjwMkCTQJL7pw9nwu5GAX91/CMzEWgGNigXEZDnWJHga7fJrr91SUgKL5/uCAnuG
+...
+FVjofAZewDgMFDRblCX2h5EBMqvLe2KCjEWYIrFozLVHn2oljDE+wCdTyQZxxhy97pVu5CXX67UH
+MiyzLtDXAiyLSmjCVolRWUg4ayKBcbBPTpYuZhuHocCdjRFreciDaZRZdlLuAvzxrIuSP35/DM9a
+xqZreTDLBpFQzh0me4dv0NZ4ZlMk8xMoQJn5D1QNT9ViMpngO5hR+1vbZQOCjFw5+OJOusbyaETJ
+gtnzr2c23W5X1g+/YwZBZNOkDqX/5OyUeiAdtPKJhCst+BiNRt7Rt19u79v37nxMlJr0KDZLKlNa
+0HLqP97pfHpoWwgwhR/QA2K8Tw+Hw/F4FJJIPPPZY7IgGGrwPxwOlaG4whD7/b5dWD08sE8iS2i8
+VhjDa7ArO+n5j9lJCEhELhYLHJBnRE9WUTx2wYNTCrdm4ZjK2XZx9/UOmLJR4HJujhfaMt5ut5g1
+z2wMsvGVN5ul2KxyEG8syac/mYDojsdjkVjL8ToHNBlw+0cRm0e6gxK2KbFfSpGcT6AAZc6/Tk1s
+GBka6PW3XC7dZIxMN67cfD6XVqMjcafTyYVHr1xLI4oquNV0OnWHXWBZttlsZtyzWtZMTVx1BUWF
+YrzFqq1WSzbNJ3UbCxmEm0oxnNDhBWIoDItKBXI1GAxkGAkcFJXXKLNGo4F7AhQkFEwwIxBWppKA
+RfFITYYrniVDQacYjIMYrNaTmR9loofeA6VWGHOCJwoPrSPQzXRgpEQDqQXJc3BS4+BSclYkvV4P
+r1SJspDpXtx2ikuuVqu0kJ2ywc0VlLBRnn2yBX8tBjebjeKYkRCenUlgOiemmItsqoY3m01/Ts7T
+34azsnpMSUp0S5vnCRSgzPN3eSGq2tvllv47LQ3GlOhGm4zjky4lfcJ0AFCS+MqAEhJtGqkoukBH
+GxLGqTUYOiWtmBSfYlwbuvY/EmYMeKjoqetr6GzoIUYIPQZtmV4RBsRgtJSQv7sV3cbDJtyGXtoP
+fQIFKD/0z/e2wbv/Sd52peK9nEDeJ1CAMu/fp0RXTqCcQAYnUIAygx+hhPDqEygTywm8ywn8BgAA
+//8xC/sgAAAABklEQVQDADBdyKYeu3W3AAAAAElFTkSuQmCC
+"; // BASE64 TRUNCADA
 
-const plates=[
-    {x:0,y:0,s:200,correct:12},
-    {x:200,y:0,s:200,correct:8},
-    {x:400,y:0,s:200,correct:29},
-    {x:0,y:200,s:200,correct:5}
-];
-
-let plateIndex=0;
+const plates=[{x:0,y:0,s:200,correct:12},{x:200,y:0,s:200,correct:8},{x:400,y:0,s:200,correct:29},{x:0,y:200,s:200,correct:5}];
+let idx=0;
 const testCanvas=document.getElementById("testCanvas");
 const tCtx=testCanvas.getContext("2d");
-
-function startTest(){
-    plateIndex=0;
-    document.getElementById("testArea").style.display="block";
-    drawPlate();
-    menu.classList.remove("open");
-}
-
-function drawPlate(){
-    const p=plates[plateIndex];
-    tCtx.clearRect(0,0,300,300);
-    tCtx.drawImage(ishiharaImg,p.x,p.y,p.s,p.s,0,0,300,300);
-}
-
+function startTest(){idx=0;document.getElementById("testArea").style.display="block";drawPlate();menu.classList.remove("open");}
+function drawPlate(){const p=plates[idx];tCtx.clearRect(0,0,300,300);tCtx.drawImage(ishiharaImg,p.x,p.y,p.s,p.s,0,0,300,300);}
 function submitAnswer(){
-    const val=parseInt(document.getElementById("testAnswer").value);
-    const ok=plates[plateIndex].correct;
-    document.getElementById("testResult").textContent=
-        val===ok?"✅ Correcto":"❌ Incorrecto (era "+ok+")";
-    plateIndex++;
-    if(plateIndex<plates.length){
-        setTimeout(drawPlate,1200);
-    }else{
-        setTimeout(()=>{
-            document.getElementById("testResult").textContent+=" — Test finalizado";
-            document.getElementById("testArea").style.display="none";
-        },1200);
-    }
+ const val=parseInt(document.getElementById("answer").value);
+ const ok=plates[idx].correct;
+ document.getElementById("result").textContent=val===ok?"✅ Correcto":"❌ Incorrecto (era "+ok+")";
+ idx++;
+ if(idx<plates.length){setTimeout(drawPlate,1200);}
+ else{setTimeout(()=>{document.getElementById("result").textContent+=" — Test finalizado";document.getElementById("testArea").style.display="none";},1200);}
 }
 </script>
 
